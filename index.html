@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>נחש את המספר 🎯</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f1a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    #confettiCanvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 100;
+    }
+
+    .card {
+      background: #1a1a2e;
+      border: 2px solid #2a2a4a;
+      border-radius: 24px;
+      padding: 40px 36px;
+      width: 440px;
+      max-width: 95vw;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transition: background 0.8s ease, border-color 0.8s ease, box-shadow 0.8s ease;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    h1 { font-size: 1.6rem; color: #a78bfa; margin-bottom: 6px; }
+    .subtitle { color: #6b7280; font-size: 0.9rem; margin-bottom: 28px; }
+
+    /* ── DIFFICULTY ── */
+    .diff-buttons { display: flex; flex-direction: column; gap: 12px; }
+    .diff-btn {
+      padding: 18px 20px; border-radius: 14px; border: 2px solid transparent;
+      cursor: pointer; font-size: 1rem; font-weight: 700;
+      transition: transform 0.15s; text-align: right;
+    }
+    .diff-btn:hover  { transform: scale(1.02); }
+    .diff-btn:active { transform: scale(0.98); }
+    .diff-btn.easy   { background: #0d3321; border-color: #34d399; color: #34d399; }
+    .diff-btn.medium { background: #2d2006; border-color: #fbbf24; color: #fbbf24; }
+    .diff-btn.hard   { background: #3a0a0a; border-color: #f87171; color: #f87171; }
+    .diff-btn .dt { font-size: 1.1rem; display: block; }
+    .diff-btn .ds { font-size: 0.8rem; opacity: 0.7; font-weight: 400; margin-top: 2px; display: block; }
+
+    /* ── TOP BAR ── */
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 18px; font-size: 0.85rem; color: #6b7280;
+    }
+    .att { font-weight: 700; }
+    .att.ok   { color: #34d399; }
+    .att.warn { color: #fbbf24; }
+    .att.bad  { color: #f87171; }
+    .timer { color: #a78bfa; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .best  { color: #fbbf24; font-size: 0.8rem; }
+
+    /* ── CHALLENGE BADGE ── */
+    .challenge-badge {
+      background: #0d2a1a; border: 1.5px solid #34d399; border-radius: 10px;
+      padding: 10px 14px; font-size: 0.85rem; color: #9ca3af; margin-bottom: 16px;
+    }
+    .challenge-badge strong { color: #34d399; }
+
+    /* ── ARROW ZONE ── */
+    .arrow-zone {
+      height: 152px; display: flex; align-items: center;
+      justify-content: center; margin-bottom: 16px;
+    }
+    .arrow { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+    @keyframes bounceUp   { 0%,100%{transform:translateY(0)}  50%{transform:translateY(-12px)} }
+    @keyframes bounceDown { 0%,100%{transform:translateY(0)}  50%{transform:translateY(12px)}  }
+    @keyframes wobble {
+      0%  {transform:translateX(0)}   20%{transform:translateX(-12px)}
+      40% {transform:translateX(12px)} 60%{transform:translateX(-7px)}
+      80% {transform:translateX(7px)}  100%{transform:translateX(0)}
+    }
+    @keyframes pop {
+      from{transform:scale(0.2);opacity:0}
+      to  {transform:scale(1);  opacity:1}
+    }
+
+    .arrow.up   { animation: pop .3s cubic-bezier(.34,1.56,.64,1), bounceUp   1s ease-in-out .3s infinite; }
+    .arrow.down { animation: pop .3s cubic-bezier(.34,1.56,.64,1), bounceDown 1s ease-in-out .3s infinite; }
+    .arrow.hot  { animation: pop .3s cubic-bezier(.34,1.56,.64,1), wobble    .55s ease-in-out .3s infinite; }
+    .arrow.winanim { animation: pop .5s cubic-bezier(.34,1.56,.64,1); }
+
+    .msg { font-size: 1.05rem; font-weight: 700; margin-top: 4px; }
+    .msg.higher { color: #60a5fa; }
+    .msg.lower  { color: #f97316; }
+    .msg.hot    { color: #fbbf24; }
+    .hint-text  { font-size: 0.82rem; color: #6b7280; margin-top: 2px; }
+
+    /* ── INPUT ── */
+    .input-row { display: flex; gap: 10px; }
+    input[type="number"] {
+      flex: 1; padding: 13px 14px; border-radius: 12px;
+      border: 2px solid #2a2a4a; background: #0f0f1a; color: #fff;
+      font-size: 1.25rem; text-align: center; outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="number"]:focus { border-color: #a78bfa; }
+    input::-webkit-inner-spin-button,
+    input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .guess-btn {
+      padding: 13px 18px; border-radius: 12px; border: none;
+      background: #a78bfa; color: #fff; font-size: 1rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background .2s, transform .1s;
+    }
+    .guess-btn:hover   { background: #7c3aed; }
+    .guess-btn:active  { transform: scale(0.97); }
+    .guess-btn:disabled { background: #374151; cursor: default; }
+
+    /* ── HINT ── */
+    .hint-row { margin-top: 10px; }
+    .hint-btn {
+      padding: 7px 16px; border-radius: 10px; border: 1.5px solid #fbbf24;
+      background: transparent; color: #fbbf24; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; transition: background .2s;
+    }
+    .hint-btn:hover    { background: #fbbf2420; }
+    .hint-btn:disabled { border-color: #374151; color: #374151; cursor: default; }
+    .hint-display { margin-top: 7px; font-size: 0.85rem; color: #fbbf24; font-weight: 600; min-height: 20px; }
+
+    /* ── HISTORY ── */
+    .history {
+      margin-top: 14px; max-height: 120px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .history::-webkit-scrollbar { width: 4px; }
+    .history::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 4px; }
+    .history-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 12px; border-radius: 8px; background: #0f0f1a;
+      font-size: 0.82rem; color: #6b7280; animation: pop .2s ease;
+    }
+    .h-num { color: #e5e7eb; font-weight: 700; }
+    .h-arr.up   { color: #60a5fa; }
+    .h-arr.down { color: #f97316; }
+    .h-arr.hot  { color: #fbbf24; }
+    .h-arr.win  { color: #34d399; }
+
+    /* ── RESULT SCREENS ── */
+    .result-icon  { font-size: 3rem; margin-bottom: 10px; animation: pop .5s cubic-bezier(.34,1.56,.64,1); }
+    .result-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    .result-title.win  { color: #34d399; }
+    .result-title.lose { color: #f87171; }
+    .result-stats { color: #9ca3af; font-size: 0.9rem; line-height: 1.9; margin-bottom: 18px; }
+    .result-stats strong { color: #e5e7eb; }
+    .new-best { color: #fbbf24; font-weight: 700; font-size: 0.95rem; margin-bottom: 14px; min-height: 22px; }
+
+    .action-row { display: flex; flex-direction: column; gap: 10px; }
+    .primary-btn {
+      padding: 13px; border-radius: 12px; border: none;
+      background: #a78bfa; color: #fff; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background .2s;
+    }
+    .primary-btn:hover { background: #7c3aed; }
+    .challenge-btn {
+      padding: 12px; border-radius: 12px; border: 2px solid #34d399;
+      background: transparent; color: #34d399; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; transition: background .2s;
+    }
+    .challenge-btn:hover { background: #34d39920; }
+    .copy-confirm { font-size: 0.82rem; color: #34d399; min-height: 18px; margin-top: 2px; }
+    .back-btn {
+      padding: 11px; border-radius: 12px; border: 2px solid #374151;
+      background: transparent; color: #6b7280; font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; transition: background .2s;
+    }
+    .back-btn:hover { background: #1a1a2e; }
+  </style>
+</head>
+<body>
+
+<canvas id="confettiCanvas"></canvas>
+
+<div class="card" id="card">
+
+  <!-- SCREEN 1: DIFFICULTY -->
+  <div class="screen active" id="sDiff">
+    <h1>נחש את המספר 🎯</h1>
+    <p class="subtitle">בחר רמת קושי להתחיל</p>
+    <div class="diff-buttons">
+      <button class="diff-btn easy"   onclick="startGame('easy')">
+        <span class="dt">קל 🟢</span>
+        <span class="ds">מספר בין 1–100 &nbsp;•&nbsp; עד 10 ניסיונות</span>
+      </button>
+      <button class="diff-btn medium" onclick="startGame('medium')">
+        <span class="dt">בינוני 🟡</span>
+        <span class="ds">מספר בין 1–1,000 &nbsp;•&nbsp; עד 15 ניסיונות</span>
+      </button>
+      <button class="diff-btn hard"   onclick="startGame('hard')">
+        <span class="dt">קשה 🔴</span>
+        <span class="ds">מספר בין 1–10,000 &nbsp;•&nbsp; עד 20 ניסיונות</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: GAME -->
+  <div class="screen" id="sGame">
+    <div class="top-bar">
+      <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-end">
+        <span class="att" id="attEl"></span>
+        <span class="best" id="bestEl"></span>
+      </div>
+      <span class="timer" id="timerEl">⏱ 0:00</span>
+    </div>
+
+    <div class="challenge-badge" id="challengeBadge" style="display:none">
+      <strong>🤝 אתגר חבר!</strong><br>אתה משחק על אותו מספר כמו החבר שלך — תנצח?
+    </div>
+
+    <div class="arrow-zone" id="arrowZone"></div>
+
+    <div class="input-row">
+      <input id="guessInput" type="number" />
+      <button class="guess-btn" id="guessBtn" onclick="makeGuess()">נחש</button>
+    </div>
+
+    <div class="hint-row">
+      <button class="hint-btn" id="hintBtn" onclick="useHint()">💡 רמז (1 פעם)</button>
+      <div class="hint-display" id="hintDisplay"></div>
+    </div>
+
+    <div class="history" id="history"></div>
+  </div>
+
+  <!-- SCREEN 3: WIN -->
+  <div class="screen" id="sWin">
+    <div class="result-icon">🎉</div>
+    <div class="result-title win">כל הכבוד! ניחשת!</div>
+    <div class="result-stats" id="winStats"></div>
+    <div class="new-best" id="newBest"></div>
+    <div class="action-row">
+      <button class="challenge-btn" onclick="copyChallenge()">🤝 אתגר חבר — שלח את המספר שלי</button>
+      <div class="copy-confirm" id="copyConfirm"></div>
+      <button class="primary-btn" onclick="goHome()">משחק חדש 🔄</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: GAME OVER -->
+  <div class="screen" id="sOver">
+    <div class="result-icon">😢</div>
+    <div class="result-title lose">נגמרו הניסיונות!</div>
+    <div class="result-stats" id="overStats"></div>
+    <div class="action-row">
+      <button class="primary-btn" onclick="startGame(currentDiffKey)">נסה שוב 🔄</button>
+      <button class="back-btn"    onclick="goHome()">בחר רמה אחרת</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────
+const DIFFS = {
+  easy:   { label:'קל',     min:1, max:100,   maxAtt:10 },
+  medium: { label:'בינוני', min:1, max:1000,  maxAtt:15 },
+  hard:   { label:'קשה',    min:1, max:10000, maxAtt:20 },
+};
+
+// ─── STATE ─────────────────────────────────────────────────
+let secret, attLeft, maxAtt, won, over, currentDiffKey, diff;
+let timerIv, elapsed, timerOn;
+let hintUsed, history = [], challengeMode = false;
+
+// ─── TEMPERATURE ───────────────────────────────────────────
+function setTemp(dist, range) {
+  const p = dist / range;
+  const card = document.getElementById('card');
+  let bg, border, shadow;
+  if      (p > 0.60) { bg='#0d1a3a'; border='#1a4a7a'; shadow='rgba(96,165,250,0.2)';  }
+  else if (p > 0.35) { bg='#1a1a2e'; border='#2a2a5a'; shadow='rgba(167,139,250,0.12)';}
+  else if (p > 0.18) { bg='#2a1505'; border='#6a3a10'; shadow='rgba(251,191,36,0.18)'; }
+  else if (p > 0.06) { bg='#3a0a05'; border='#8a2a15'; shadow='rgba(249,115,22,0.25)'; }
+  else               { bg='#4a0303'; border='#bb1515'; shadow='rgba(248,113,113,0.35)';}
+  card.style.background  = bg;
+  card.style.borderColor = border;
+  card.style.boxShadow   = `0 20px 60px rgba(0,0,0,0.5), 0 0 50px ${shadow}`;
+}
+
+function resetTemp() {
+  const card = document.getElementById('card');
+  card.style.background  = '#1a1a2e';
+  card.style.borderColor = '#2a2a4a';
+  card.style.boxShadow   = '0 20px 60px rgba(0,0,0,0.5)';
+}
+
+// ─── ARROWS ────────────────────────────────────────────────
+function sz(dist, range) {
+  return Math.round(28 + (dist / range) * 100);
+}
+function svgUp(px, col) {
+  return `<svg width="${px}" height="${px}" viewBox="0 0 100 100"><polygon points="50,4 96,82 4,82" fill="${col}"/></svg>`;
+}
+function svgDn(px, col) {
+  return `<svg width="${px}" height="${px}" viewBox="0 0 100 100"><polygon points="50,96 4,18 96,18" fill="${col}"/></svg>`;
+}
+
+// ─── TIMER ─────────────────────────────────────────────────
+function startTimer() {
+  if (timerOn) return;
+  timerOn = true; elapsed = 0;
+  timerIv = setInterval(() => {
+    elapsed++;
+    const m = Math.floor(elapsed/60), s = elapsed%60;
+    document.getElementById('timerEl').textContent = `⏱ ${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+function stopTimer() { clearInterval(timerIv); }
+
+// ─── BEST SCORE ────────────────────────────────────────────
+function getBest(k)       { const v=localStorage.getItem('best_'+k); return v?JSON.parse(v):null; }
+function saveBest(k,a,s)  { localStorage.setItem('best_'+k, JSON.stringify({a,s})); }
+function showBest() {
+  const b = getBest(currentDiffKey);
+  document.getElementById('bestEl').textContent = b ? `🏆 שיא: ${b.a} ניסיונות` : '';
+}
+
+// ─── ATTEMPTS DISPLAY ──────────────────────────────────────
+function showAtt() {
+  const el = document.getElementById('attEl');
+  el.textContent = `${attLeft} ניסיונות נותרו`;
+  el.className = 'att ' + (attLeft > 7 ? 'ok' : attLeft > 3 ? 'warn' : 'bad');
+}
+
+// ─── HISTORY ───────────────────────────────────────────────
+function addHist(val, dir, dist) {
+  const c = document.getElementById('history');
+  const d = document.createElement('div');
+  d.className = 'history-item';
+  let arrow, cls;
+  if (dir==='win')          { arrow='✓';  cls='win'; }
+  else if (dist<=10)        { arrow=dir==='up'?'↑🔥':'↓🔥'; cls='hot'; }
+  else if (dir==='up')      { arrow='↑';  cls='up';  }
+  else                      { arrow='↓';  cls='down';}
+  d.innerHTML = `
+    <span style="color:#4b5563">ניסיון ${history.length}</span>
+    <span class="h-num">${val.toLocaleString()}</span>
+    <span class="h-arr ${cls}">${arrow}</span>`;
+  c.prepend(d);
+}
+
+// ─── HINT ──────────────────────────────────────────────────
+function useHint() {
+  if (hintUsed) return;
+  hintUsed = true;
+  document.getElementById('hintBtn').disabled = true;
+  const opts = [
+    `המספר הוא ${secret%2===0?'זוגי':'אי-זוגי'}`,
+    `המספר ${secret%5===0?'מתחלק ב-5':'לא מתחלק ב-5'}`,
+  ];
+  const band = Math.round((diff.max-diff.min)*0.18);
+  const lo = Math.max(diff.min, secret-band), hi = Math.min(diff.max, secret+band);
+  opts.push(`המספר בין ${lo.toLocaleString()} ל-${hi.toLocaleString()}`);
+  document.getElementById('hintDisplay').textContent =
+    '💡 ' + opts[Math.floor(Math.random()*opts.length)];
+}
+
+// ─── CONFETTI ──────────────────────────────────────────────
+function confetti() {
+  const cv = document.getElementById('confettiCanvas');
+  const cx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight;
+  const COLORS = ['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#fb7185'];
+  const ps = Array.from({length:150}, ()=>({
+    x:Math.random()*cv.width, y:-20,
+    r:Math.random()*7+4,
+    dx:(Math.random()-.5)*4, dy:Math.random()*4+2,
+    col:COLORS[Math.floor(Math.random()*COLORS.length)],
+    ang:Math.random()*360, spin:(Math.random()-.5)*6, op:1,
+  }));
+  let raf;
+  function draw() {
+    cx.clearRect(0,0,cv.width,cv.height);
+    let alive=false;
+    ps.forEach(p=>{
+      if(p.y<cv.height+20){ alive=true;
+        p.x+=p.dx; p.y+=p.dy; p.ang+=p.spin;
+        p.op=Math.max(0,1-p.y/cv.height);
+        cx.save(); cx.globalAlpha=p.op; cx.translate(p.x,p.y);
+        cx.rotate(p.ang*Math.PI/180); cx.fillStyle=p.col;
+        cx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); cx.restore();
+      }
+    });
+    if(alive) raf=requestAnimationFrame(draw);
+    else cx.clearRect(0,0,cv.width,cv.height);
+  }
+  draw();
+  setTimeout(()=>{ cancelAnimationFrame(raf); cx.clearRect(0,0,cv.width,cv.height); },5000);
+}
+
+// ─── CHALLENGE LINK ────────────────────────────────────────
+function buildLink() {
+  return `${location.href.split('?')[0]}?c=${secret}_${currentDiffKey}`;
+}
+function copyChallenge() {
+  navigator.clipboard.writeText(buildLink()).then(()=>{
+    document.getElementById('copyConfirm').textContent = '✓ הקישור הועתק! שלח לחבר שלך 🚀';
+    setTimeout(()=>document.getElementById('copyConfirm').textContent='', 3000);
+  });
+}
+function checkChallenge() {
+  const c = new URLSearchParams(location.search).get('c');
+  if (!c) return false;
+  const [n, dk] = c.split('_');
+  if (!n || !DIFFS[dk]) return false;
+  challengeMode = true;
+  startGame(dk, parseInt(n,10));
+  return true;
+}
+
+// ─── SCREENS ───────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─── GAME START ────────────────────────────────────────────
+function startGame(key, forced) {
+  currentDiffKey = key;
+  diff   = DIFFS[key];
+  secret = forced ?? (Math.floor(Math.random()*(diff.max-diff.min+1))+diff.min);
+  attLeft = maxAtt = diff.maxAtt;
+  won=over=hintUsed=timerOn=false; history=[];
+
+  document.getElementById('arrowZone').innerHTML  = '';
+  document.getElementById('history').innerHTML    = '';
+  document.getElementById('hintDisplay').textContent = '';
+  document.getElementById('hintBtn').disabled     = false;
+  document.getElementById('guessBtn').disabled    = false;
+  document.getElementById('guessInput').disabled  = false;
+  document.getElementById('guessInput').min       = diff.min;
+  document.getElementById('guessInput').max       = diff.max;
+  document.getElementById('guessInput').placeholder = `${diff.min.toLocaleString()}–${diff.max.toLocaleString()}`;
+  document.getElementById('guessInput').value     = '';
+  document.getElementById('timerEl').textContent  = '⏱ 0:00';
+  document.getElementById('challengeBadge').style.display = challengeMode ? 'block' : 'none';
+
+  resetTemp(); showAtt(); showBest();
+  show('sGame');
+  document.getElementById('guessInput').focus();
+}
+
+// ─── MAIN GUESS ────────────────────────────────────────────
+function makeGuess() {
+  if (won || over) return;
+  const inp = document.getElementById('guessInput');
+  const val = parseInt(inp.value, 10);
+  if (!val || val<diff.min || val>diff.max) {
+    inp.style.borderColor='#f87171';
+    setTimeout(()=>inp.style.borderColor='',600);
+    return;
+  }
+
+  startTimer();
+  attLeft--; history.push(val);
+  showAtt();
+
+  const delta = secret - val;
+  const dist  = Math.abs(delta);
+  const range = diff.max - diff.min;
+  const zone  = document.getElementById('arrowZone');
+
+  setTemp(dist, range);
+
+  if (delta === 0) {
+    won = true; stopTimer();
+    addHist(val,'win',0);
+    zone.innerHTML = `<div class="arrow winanim" style="gap:4px">
+      <div style="font-size:2.2rem">🎉</div>
+      <div class="msg" style="color:#34d399;font-size:1.3rem">ניחשת!</div>
+    </div>`;
+    confetti();
+
+    const used = maxAtt - attLeft;
+    const best = getBest(currentDiffKey);
+    let newBestText = '';
+    if (!best || used<best.a || (used===best.a && elapsed<best.s)) {
+      saveBest(currentDiffKey, used, elapsed);
+      newBestText = '🏆 שיא אישי חדש!';
+    }
+    const m=Math.floor(elapsed/60), s=elapsed%60;
+    document.getElementById('winStats').innerHTML =
+      `המספר היה <strong>${secret.toLocaleString()}</strong><br>
+       ניחשת ב-<strong>${used}</strong> ניסיונות<br>
+       זמן: <strong>${m}:${String(s).padStart(2,'0')}</strong>`;
+    document.getElementById('newBest').textContent = newBestText;
+    setTimeout(()=>show('sWin'), 900);
+
+  } else if (dist <= 10) {
+    const col = '#fbbf24';
+    const svg = delta>0 ? svgUp(sz(dist,range),col) : svgDn(sz(dist,range),col);
+    const lbl = delta>0 ? '🔥 עלה קצת ↑' : '🔥 רד קצת ↓';
+    zone.innerHTML = `<div class="arrow hot">
+      ${svg}
+      <div class="msg hot">${lbl}</div>
+      <div class="hint-text">אתה בוער! מרחק ${dist}</div>
+    </div>`;
+    addHist(val, delta>0?'up':'down', dist);
+
+  } else if (delta > 0) {
+    const far = dist > range*0.5;
+    zone.innerHTML = `<div class="arrow up">
+      ${svgUp(sz(dist,range),'#60a5fa')}
+      <div class="msg higher">גבוה יותר ↑</div>
+      <div class="hint-text">${far?'הרבה יותר גבוה!':dist<=80?'קרוב! המשך':'קצת יותר גבוה'}</div>
+    </div>`;
+    addHist(val,'up',dist);
+
+  } else {
+    const far = dist > range*0.5;
+    zone.innerHTML = `<div class="arrow down">
+      ${svgDn(sz(dist,range),'#f97316')}
+      <div class="msg lower">נמוך יותר ↓</div>
+      <div class="hint-text">${far?'הרבה יותר נמוך!':dist<=80?'קרוב! המשך':'קצת יותר נמוך'}</div>
+    </div>`;
+    addHist(val,'down',dist);
+  }
+
+  if (!won && attLeft===0) {
+    over=true; stopTimer();
+    document.getElementById('guessBtn').disabled  = true;
+    document.getElementById('guessInput').disabled = true;
+    document.getElementById('overStats').innerHTML =
+      `המספר היה <strong>${secret.toLocaleString()}</strong><br>
+       ניסית <strong>${maxAtt}</strong> פעמים ולא הצלחת 😅<br>
+       <span style="color:#6b7280">בפעם הבאה תצליח!</span>`;
+    setTimeout(()=>show('sOver'), 1200);
+  }
+
+  inp.value=''; inp.focus();
+}
+
+// ─── HOME ──────────────────────────────────────────────────
+function goHome() {
+  challengeMode = false;
+  history.replaceState({}, '', location.pathname);
+  resetTemp(); show('sDiff');
+}
+
+document.addEventListener('keydown', e=>{ if(e.key==='Enter') makeGuess(); });
+checkChallenge() || show('sDiff');
+</script>
+</body>
+</html>
