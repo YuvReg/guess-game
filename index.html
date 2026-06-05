@@ -1,563 +1,785 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>נחש את המספר 🎯</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:#0f0f1a;font-family:'Segoe UI',Arial,sans-serif;color:#fff;overflow-x:hidden}
+    #confettiCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100}
+    .card{background:#1a1a2e;border:2px solid #2a2a4a;border-radius:24px;padding:36px 32px;
+      width:460px;max-width:96vw;text-align:center;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);transition:background .7s,border-color .7s,box-shadow .7s}
+    .screen{display:none}.screen.active{display:block}
+    h1{font-size:1.55rem;color:#a78bfa;margin-bottom:5px}
+    .sub{color:#6b7280;font-size:.88rem;margin-bottom:24px}
+    @keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}
+      40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+    @keyframes bounceUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-13px)}}
+    @keyframes bounceDown{0%,100%{transform:translateY(0)}50%{transform:translateY(13px)}}
+    @keyframes wobble{0%{transform:translateX(0)}20%{transform:translateX(-13px)}
+      40%{transform:translateX(13px)}60%{transform:translateX(-7px)}80%{transform:translateX(7px)}100%{transform:translateX(0)}}
 
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #0f0f1a;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      color: #fff;
-      overflow-x: hidden;
-    }
-
-    #confettiCanvas {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none; z-index: 100;
-    }
-
-    .card {
-      background: #1a1a2e;
-      border: 2px solid #2a2a4a;
-      border-radius: 24px;
-      padding: 40px 36px;
-      width: 440px;
-      max-width: 95vw;
-      text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      transition: background 0.8s ease, border-color 0.8s ease, box-shadow 0.8s ease;
-    }
-
-    .screen { display: none; }
-    .screen.active { display: block; }
-
-    h1 { font-size: 1.6rem; color: #a78bfa; margin-bottom: 6px; }
-    .subtitle { color: #6b7280; font-size: 0.9rem; margin-bottom: 28px; }
+    /* ── HOME ── */
+    .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .mode-btn{padding:16px 10px;border-radius:14px;border:2px solid transparent;
+      cursor:pointer;font-weight:700;transition:transform .15s,opacity .2s;background:#0f0f1a}
+    .mode-btn:hover{transform:scale(1.03)}.mode-btn:active{transform:scale(.97)}
+    .mode-btn .mi{font-size:1.6rem;display:block;margin-bottom:4px}
+    .mode-btn .ml{font-size:.95rem;display:block}
+    .mode-btn .ms{font-size:.72rem;opacity:.65;font-weight:400;display:block;margin-top:2px}
+    .mode-btn.normal{border-color:#a78bfa;color:#a78bfa}
+    .mode-btn.speed {border-color:#60a5fa;color:#60a5fa}
+    .mode-btn.zen   {border-color:#34d399;color:#34d399}
+    .mode-btn.daily {border-color:#fbbf24;color:#fbbf24}
+    .stats-link{background:none;border:none;color:#6b7280;font-size:.85rem;
+      cursor:pointer;text-decoration:underline;margin-top:4px}
+    .stats-link:hover{color:#a78bfa}
 
     /* ── DIFFICULTY ── */
-    .diff-buttons { display: flex; flex-direction: column; gap: 12px; }
-    .diff-btn {
-      padding: 18px 20px; border-radius: 14px; border: 2px solid transparent;
-      cursor: pointer; font-size: 1rem; font-weight: 700;
-      transition: transform 0.15s; text-align: right;
-    }
-    .diff-btn:hover  { transform: scale(1.02); }
-    .diff-btn:active { transform: scale(0.98); }
-    .diff-btn.easy   { background: #0d3321; border-color: #34d399; color: #34d399; }
-    .diff-btn.medium { background: #2d2006; border-color: #fbbf24; color: #fbbf24; }
-    .diff-btn.hard   { background: #3a0a0a; border-color: #f87171; color: #f87171; }
-    .diff-btn .dt { font-size: 1.1rem; display: block; }
-    .diff-btn .ds { font-size: 0.8rem; opacity: 0.7; font-weight: 400; margin-top: 2px; display: block; }
+    .diff-btns{display:flex;flex-direction:column;gap:10px}
+    .diff-btn{padding:16px 18px;border-radius:14px;border:2px solid transparent;
+      cursor:pointer;font-weight:700;transition:transform .15s;text-align:right}
+    .diff-btn:hover{transform:scale(1.02)}.diff-btn:active{transform:scale(.98)}
+    .diff-btn .dt{font-size:1.05rem;display:block}
+    .diff-btn .ds{font-size:.78rem;opacity:.65;font-weight:400;margin-top:2px;display:block}
+    .diff-btn.easy  {background:#0d3321;border-color:#34d399;color:#34d399}
+    .diff-btn.medium{background:#2d2006;border-color:#fbbf24;color:#fbbf24}
+    .diff-btn.hard  {background:#3a0a0a;border-color:#f87171;color:#f87171}
+    .back-sm{background:none;border:none;color:#6b7280;font-size:.82rem;cursor:pointer;
+      margin-top:12px;text-decoration:underline}
+    .back-sm:hover{color:#a78bfa}
 
-    /* ── TOP BAR ── */
-    .top-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 18px; font-size: 0.85rem; color: #6b7280;
-    }
-    .att { font-weight: 700; }
-    .att.ok   { color: #34d399; }
-    .att.warn { color: #fbbf24; }
-    .att.bad  { color: #f87171; }
-    .timer { color: #a78bfa; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .best  { color: #fbbf24; font-size: 0.8rem; }
+    /* ── GAME TOP BAR ── */
+    .top-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;font-size:.83rem}
+    .att{font-weight:700}.att.ok{color:#34d399}.att.warn{color:#fbbf24}.att.bad{color:#f87171}
+    .att.none{color:#6b7280}
+    .timer-box{text-align:left}
+    .timer{color:#a78bfa;font-weight:700;font-variant-numeric:tabular-nums}
+    .best-label{color:#fbbf24;font-size:.75rem;margin-top:1px}
+    .mode-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.72rem;
+      font-weight:700;margin-bottom:10px}
+    .mode-badge.speed{background:#1a2a4a;color:#60a5fa;border:1px solid #60a5fa}
+    .mode-badge.zen  {background:#0d2a1a;color:#34d399;border:1px solid #34d399}
+    .mode-badge.daily{background:#2a2006;color:#fbbf24;border:1px solid #fbbf24}
 
     /* ── CHALLENGE BADGE ── */
-    .challenge-badge {
-      background: #0d2a1a; border: 1.5px solid #34d399; border-radius: 10px;
-      padding: 10px 14px; font-size: 0.85rem; color: #9ca3af; margin-bottom: 16px;
-    }
-    .challenge-badge strong { color: #34d399; }
+    .cbadge{background:#0d2a1a;border:1.5px solid #34d399;border-radius:10px;
+      padding:9px 12px;font-size:.83rem;color:#9ca3af;margin-bottom:12px}
+    .cbadge strong{color:#34d399}
+
+    /* ── GAUGE ── */
+    .gauge-wrap{margin-bottom:10px;padding:0 4px}
+    .gauge-track{position:relative;height:6px;background:#1f1f3a;border-radius:3px;overflow:visible}
+    .gauge-fill{position:absolute;top:0;left:0;height:100%;border-radius:3px;
+      background:linear-gradient(90deg,#60a5fa,#a78bfa,#f97316);transition:width .4s ease}
+    .gauge-marker{position:absolute;top:-5px;width:16px;height:16px;border-radius:50%;
+      background:#fff;border:3px solid #a78bfa;transform:translateX(-50%);
+      transition:left .4s ease;box-shadow:0 0 8px rgba(167,139,250,.6)}
+    .gauge-labels{display:flex;justify-content:space-between;font-size:.7rem;color:#4b5563;margin-top:4px}
 
     /* ── ARROW ZONE ── */
-    .arrow-zone {
-      height: 152px; display: flex; align-items: center;
-      justify-content: center; margin-bottom: 16px;
-    }
-    .arrow { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-
-    @keyframes bounceUp   { 0%,100%{transform:translateY(0)}  50%{transform:translateY(-12px)} }
-    @keyframes bounceDown { 0%,100%{transform:translateY(0)}  50%{transform:translateY(12px)}  }
-    @keyframes wobble {
-      0%  {transform:translateX(0)}   20%{transform:translateX(-12px)}
-      40% {transform:translateX(12px)} 60%{transform:translateX(-7px)}
-      80% {transform:translateX(7px)}  100%{transform:translateX(0)}
-    }
-    @keyframes pop {
-      from{transform:scale(0.2);opacity:0}
-      to  {transform:scale(1);  opacity:1}
-    }
-
-    .arrow.up   { animation: pop .3s cubic-bezier(.34,1.56,.64,1), bounceUp   1s ease-in-out .3s infinite; }
-    .arrow.down { animation: pop .3s cubic-bezier(.34,1.56,.64,1), bounceDown 1s ease-in-out .3s infinite; }
-    .arrow.hot  { animation: pop .3s cubic-bezier(.34,1.56,.64,1), wobble    .55s ease-in-out .3s infinite; }
-    .arrow.winanim { animation: pop .5s cubic-bezier(.34,1.56,.64,1); }
-
-    .msg { font-size: 1.05rem; font-weight: 700; margin-top: 4px; }
-    .msg.higher { color: #60a5fa; }
-    .msg.lower  { color: #f97316; }
-    .msg.hot    { color: #fbbf24; }
-    .hint-text  { font-size: 0.82rem; color: #6b7280; margin-top: 2px; }
+    .arrow-zone{height:140px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+    .arrow{display:flex;flex-direction:column;align-items:center;gap:5px}
+    .arrow.up   {animation:pop .3s cubic-bezier(.34,1.56,.64,1),bounceUp   1s ease-in-out .3s infinite}
+    .arrow.down {animation:pop .3s cubic-bezier(.34,1.56,.64,1),bounceDown 1s ease-in-out .3s infinite}
+    .arrow.hot  {animation:pop .3s cubic-bezier(.34,1.56,.64,1),wobble    .55s ease-in-out .3s infinite}
+    .arrow.wa   {animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
+    .msg{font-size:1rem;font-weight:700;margin-top:3px}
+    .msg.higher{color:#60a5fa}.msg.lower{color:#f97316}.msg.hot{color:#fbbf24}
+    .htxt{font-size:.8rem;color:#6b7280;margin-top:1px}
 
     /* ── INPUT ── */
-    .input-row { display: flex; gap: 10px; }
-    input[type="number"] {
-      flex: 1; padding: 13px 14px; border-radius: 12px;
-      border: 2px solid #2a2a4a; background: #0f0f1a; color: #fff;
-      font-size: 1.25rem; text-align: center; outline: none;
-      transition: border-color 0.2s;
-    }
-    input[type="number"]:focus { border-color: #a78bfa; }
-    input::-webkit-inner-spin-button,
-    input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .input-row{display:flex;gap:8px}
+    input[type=number]{flex:1;padding:12px 10px;border-radius:12px;border:2px solid #2a2a4a;
+      background:#0f0f1a;color:#fff;font-size:1.2rem;text-align:center;outline:none;
+      transition:border-color .2s}
+    input[type=number]:focus{border-color:#a78bfa}
+    input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appearance:none}
+    input.shake{animation:shake .4s ease}
+    .guess-btn{padding:12px 16px;border-radius:12px;border:none;background:#a78bfa;
+      color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;white-space:nowrap;
+      transition:background .2s,transform .1s}
+    .guess-btn:hover{background:#7c3aed}.guess-btn:active{transform:scale(.97)}
+    .guess-btn:disabled{background:#374151;cursor:default}
 
-    .guess-btn {
-      padding: 13px 18px; border-radius: 12px; border: none;
-      background: #a78bfa; color: #fff; font-size: 1rem; font-weight: 700;
-      cursor: pointer; white-space: nowrap; transition: background .2s, transform .1s;
-    }
-    .guess-btn:hover   { background: #7c3aed; }
-    .guess-btn:active  { transform: scale(0.97); }
-    .guess-btn:disabled { background: #374151; cursor: default; }
+    /* ── QUICK BUTTONS ── */
+    .quick-row{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;justify-content:center}
+    .qbtn{padding:5px 10px;border-radius:8px;border:1.5px solid #2a2a4a;background:#0f0f1a;
+      color:#9ca3af;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s}
+    .qbtn:hover{border-color:#a78bfa;color:#a78bfa}.qbtn:active{transform:scale(.95)}
+    .qbtn:disabled{opacity:.3;cursor:default}
 
     /* ── HINT ── */
-    .hint-row { margin-top: 10px; }
-    .hint-btn {
-      padding: 7px 16px; border-radius: 10px; border: 1.5px solid #fbbf24;
-      background: transparent; color: #fbbf24; font-size: 0.85rem; font-weight: 700;
-      cursor: pointer; transition: background .2s;
-    }
-    .hint-btn:hover    { background: #fbbf2420; }
-    .hint-btn:disabled { border-color: #374151; color: #374151; cursor: default; }
-    .hint-display { margin-top: 7px; font-size: 0.85rem; color: #fbbf24; font-weight: 600; min-height: 20px; }
+    .hint-row{margin-top:9px}
+    .hint-btn{padding:6px 14px;border-radius:9px;border:1.5px solid #fbbf24;
+      background:transparent;color:#fbbf24;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .2s}
+    .hint-btn:hover{background:#fbbf2420}
+    .hint-btn:disabled{border-color:#374151;color:#374151;cursor:default}
+    .hint-disp{margin-top:6px;font-size:.82rem;color:#fbbf24;font-weight:600;min-height:18px}
 
     /* ── HISTORY ── */
-    .history {
-      margin-top: 14px; max-height: 120px; overflow-y: auto;
-      display: flex; flex-direction: column; gap: 4px;
-    }
-    .history::-webkit-scrollbar { width: 4px; }
-    .history::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 4px; }
-    .history-item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 5px 12px; border-radius: 8px; background: #0f0f1a;
-      font-size: 0.82rem; color: #6b7280; animation: pop .2s ease;
-    }
-    .h-num { color: #e5e7eb; font-weight: 700; }
-    .h-arr.up   { color: #60a5fa; }
-    .h-arr.down { color: #f97316; }
-    .h-arr.hot  { color: #fbbf24; }
-    .h-arr.win  { color: #34d399; }
+    .history{margin-top:12px;max-height:110px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+    .history::-webkit-scrollbar{width:3px}
+    .history::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:3px}
+    .hi{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;
+      border-radius:7px;background:#0f0f1a;font-size:.8rem;color:#6b7280;animation:pop .2s ease}
+    .hi .hn{color:#e5e7eb;font-weight:700}
+    .hi .ha.up{color:#60a5fa}.hi .ha.down{color:#f97316}.hi .ha.hot{color:#fbbf24}.hi .ha.win{color:#34d399}
 
     /* ── RESULT SCREENS ── */
-    .result-icon  { font-size: 3rem; margin-bottom: 10px; animation: pop .5s cubic-bezier(.34,1.56,.64,1); }
-    .result-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
-    .result-title.win  { color: #34d399; }
-    .result-title.lose { color: #f87171; }
-    .result-stats { color: #9ca3af; font-size: 0.9rem; line-height: 1.9; margin-bottom: 18px; }
-    .result-stats strong { color: #e5e7eb; }
-    .new-best { color: #fbbf24; font-weight: 700; font-size: 0.95rem; margin-bottom: 14px; min-height: 22px; }
+    .ri{font-size:2.8rem;margin-bottom:8px;animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
+    .rt{font-size:1.4rem;font-weight:700;margin-bottom:7px}
+    .rt.win{color:#34d399}.rt.lose{color:#f87171}
+    .rs{color:#9ca3af;font-size:.88rem;line-height:1.9;margin-bottom:16px}
+    .rs strong{color:#e5e7eb}
+    .nb{color:#fbbf24;font-weight:700;font-size:.92rem;margin-bottom:12px;min-height:20px}
+    .share-card{background:#0f0f1a;border:1.5px solid #2a2a4a;border-radius:10px;
+      padding:10px 14px;font-size:.8rem;color:#9ca3af;margin-bottom:12px;text-align:right;
+      font-family:monospace;white-space:pre-line;line-height:1.6}
+    .actions{display:flex;flex-direction:column;gap:8px}
+    .btn-primary{padding:12px;border-radius:12px;border:none;background:#a78bfa;
+      color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .2s}
+    .btn-primary:hover{background:#7c3aed}
+    .btn-challenge{padding:11px;border-radius:12px;border:2px solid #34d399;
+      background:transparent;color:#34d399;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .2s}
+    .btn-challenge:hover{background:#34d39920}
+    .btn-share{padding:11px;border-radius:12px;border:2px solid #60a5fa;
+      background:transparent;color:#60a5fa;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .2s}
+    .btn-share:hover{background:#60a5fa20}
+    .btn-ghost{padding:10px;border-radius:12px;border:2px solid #374151;
+      background:transparent;color:#6b7280;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .2s}
+    .btn-ghost:hover{background:#1a1a2e}
+    .copy-ok{font-size:.78rem;color:#34d399;min-height:16px;margin-top:2px}
 
-    .action-row { display: flex; flex-direction: column; gap: 10px; }
-    .primary-btn {
-      padding: 13px; border-radius: 12px; border: none;
-      background: #a78bfa; color: #fff; font-size: 1rem; font-weight: 700;
-      cursor: pointer; transition: background .2s;
-    }
-    .primary-btn:hover { background: #7c3aed; }
-    .challenge-btn {
-      padding: 12px; border-radius: 12px; border: 2px solid #34d399;
-      background: transparent; color: #34d399; font-size: 0.95rem; font-weight: 700;
-      cursor: pointer; transition: background .2s;
-    }
-    .challenge-btn:hover { background: #34d39920; }
-    .copy-confirm { font-size: 0.82rem; color: #34d399; min-height: 18px; margin-top: 2px; }
-    .back-btn {
-      padding: 11px; border-radius: 12px; border: 2px solid #374151;
-      background: transparent; color: #6b7280; font-size: 0.9rem; font-weight: 700;
-      cursor: pointer; transition: background .2s;
-    }
-    .back-btn:hover { background: #1a1a2e; }
+    /* ── STATS ── */
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+    .stat-card{background:#0f0f1a;border-radius:12px;padding:12px;text-align:center}
+    .stat-num{font-size:1.6rem;font-weight:700;color:#a78bfa}
+    .stat-lbl{font-size:.75rem;color:#6b7280;margin-top:2px}
+    .dist-title{font-size:.85rem;color:#9ca3af;margin-bottom:8px;text-align:right}
+    .dist-bar-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;font-size:.78rem}
+    .dist-bar-row .dbl{width:18px;color:#6b7280;text-align:center;flex-shrink:0}
+    .dist-track{flex:1;height:14px;background:#1f1f3a;border-radius:3px;overflow:hidden}
+    .dist-fill{height:100%;background:#a78bfa;border-radius:3px;transition:width .5s}
+    .dist-count{width:22px;color:#9ca3af;text-align:left;flex-shrink:0}
+    .diff-tab-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+    .diff-tab{padding:5px 12px;border-radius:8px;border:1.5px solid #2a2a4a;
+      background:#0f0f1a;color:#6b7280;font-size:.8rem;cursor:pointer;transition:all .2s}
+    .diff-tab.active{border-color:#a78bfa;color:#a78bfa;background:#1a1030}
   </style>
 </head>
 <body>
-
 <canvas id="confettiCanvas"></canvas>
-
 <div class="card" id="card">
 
-  <!-- SCREEN 1: DIFFICULTY -->
-  <div class="screen active" id="sDiff">
+  <!-- HOME -->
+  <div class="screen active" id="sHome">
     <h1>נחש את המספר 🎯</h1>
-    <p class="subtitle">בחר רמת קושי להתחיל</p>
-    <div class="diff-buttons">
+    <p class="sub">בחר מצב משחק</p>
+    <div class="mode-grid">
+      <button class="mode-btn normal" onclick="pickMode('normal')">
+        <span class="mi">🎮</span><span class="ml">רגיל</span>
+        <span class="ms">בחר קושי</span>
+      </button>
+      <button class="mode-btn speed" onclick="pickMode('speed')">
+        <span class="mi">⚡</span><span class="ml">מהירות</span>
+        <span class="ms">ללא הגבלת ניסיון</span>
+      </button>
+      <button class="mode-btn zen" onclick="pickMode('zen')">
+        <span class="mi">🧘</span><span class="ml">זן</span>
+        <span class="ms">ללא טיימר, ללא לחץ</span>
+      </button>
+      <button class="mode-btn daily" onclick="startDaily()">
+        <span class="mi">📅</span><span class="ml">יומי</span>
+        <span class="ms">אותו מספר לכולם היום</span>
+      </button>
+    </div>
+    <button class="stats-link" onclick="showStats()">📊 הסטטיסטיקות שלי</button>
+  </div>
+
+  <!-- DIFFICULTY PICKER -->
+  <div class="screen" id="sDiff">
+    <h1>בחר קושי</h1>
+    <p class="sub" id="diffModeLine"></p>
+    <div class="diff-btns">
       <button class="diff-btn easy"   onclick="startGame('easy')">
         <span class="dt">קל 🟢</span>
-        <span class="ds">מספר בין 1–100 &nbsp;•&nbsp; עד 10 ניסיונות</span>
+        <span class="ds">1–100 &nbsp;•&nbsp; עד 10 ניסיונות</span>
       </button>
       <button class="diff-btn medium" onclick="startGame('medium')">
         <span class="dt">בינוני 🟡</span>
-        <span class="ds">מספר בין 1–1,000 &nbsp;•&nbsp; עד 15 ניסיונות</span>
+        <span class="ds">1–1,000 &nbsp;•&nbsp; עד 15 ניסיונות</span>
       </button>
       <button class="diff-btn hard"   onclick="startGame('hard')">
         <span class="dt">קשה 🔴</span>
-        <span class="ds">מספר בין 1–10,000 &nbsp;•&nbsp; עד 20 ניסיונות</span>
+        <span class="ds">1–10,000 &nbsp;•&nbsp; עד 20 ניסיונות</span>
       </button>
     </div>
+    <button class="back-sm" onclick="show('sHome')">← חזור</button>
   </div>
 
-  <!-- SCREEN 2: GAME -->
+  <!-- GAME -->
   <div class="screen" id="sGame">
+    <div id="modeBadgeWrap"></div>
     <div class="top-bar">
-      <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-end">
-        <span class="att" id="attEl"></span>
-        <span class="best" id="bestEl"></span>
+      <div>
+        <div class="att" id="attEl"></div>
+        <div class="best-label" id="bestEl"></div>
       </div>
-      <span class="timer" id="timerEl">⏱ 0:00</span>
+      <div class="timer-box">
+        <div class="timer" id="timerEl">⏱ 0:00</div>
+      </div>
     </div>
-
-    <div class="challenge-badge" id="challengeBadge" style="display:none">
-      <strong>🤝 אתגר חבר!</strong><br>אתה משחק על אותו מספר כמו החבר שלך — תנצח?
+    <div class="cbadge" id="cbadge" style="display:none">
+      <strong>🤝 אתגר חבר!</strong> אתה משחק על אותו מספר — תנצח?
     </div>
-
+    <div class="gauge-wrap" id="gaugeWrap" style="display:none">
+      <div class="gauge-track">
+        <div class="gauge-fill" id="gFill" style="width:0%"></div>
+        <div class="gauge-marker" id="gMark" style="left:0%"></div>
+      </div>
+      <div class="gauge-labels">
+        <span id="gMin"></span><span id="gMax"></span>
+      </div>
+    </div>
     <div class="arrow-zone" id="arrowZone"></div>
-
     <div class="input-row">
-      <input id="guessInput" type="number" />
+      <input id="guessInput" type="number">
       <button class="guess-btn" id="guessBtn" onclick="makeGuess()">נחש</button>
     </div>
-
+    <div class="quick-row" id="quickRow"></div>
     <div class="hint-row">
       <button class="hint-btn" id="hintBtn" onclick="useHint()">💡 רמז (1 פעם)</button>
-      <div class="hint-display" id="hintDisplay"></div>
+      <div class="hint-disp" id="hintDisp"></div>
     </div>
-
     <div class="history" id="history"></div>
   </div>
 
-  <!-- SCREEN 3: WIN -->
+  <!-- WIN -->
   <div class="screen" id="sWin">
-    <div class="result-icon">🎉</div>
-    <div class="result-title win">כל הכבוד! ניחשת!</div>
-    <div class="result-stats" id="winStats"></div>
-    <div class="new-best" id="newBest"></div>
-    <div class="action-row">
-      <button class="challenge-btn" onclick="copyChallenge()">🤝 אתגר חבר — שלח את המספר שלי</button>
-      <div class="copy-confirm" id="copyConfirm"></div>
-      <button class="primary-btn" onclick="goHome()">משחק חדש 🔄</button>
+    <div class="ri">🎉</div>
+    <div class="rt win">כל הכבוד! ניחשת!</div>
+    <div class="rs" id="winStats"></div>
+    <div class="nb" id="newBest"></div>
+    <div class="share-card" id="shareCard"></div>
+    <div class="actions">
+      <button class="btn-share"     onclick="copyShare()">📋 שתף תוצאה</button>
+      <button class="btn-challenge" onclick="copyChallenge()">🤝 אתגר חבר</button>
+      <div class="copy-ok" id="copyOk"></div>
+      <button class="btn-primary"   onclick="goHome()">משחק חדש 🔄</button>
     </div>
   </div>
 
-  <!-- SCREEN 4: GAME OVER -->
+  <!-- GAME OVER -->
   <div class="screen" id="sOver">
-    <div class="result-icon">😢</div>
-    <div class="result-title lose">נגמרו הניסיונות!</div>
-    <div class="result-stats" id="overStats"></div>
-    <div class="action-row">
-      <button class="primary-btn" onclick="startGame(currentDiffKey)">נסה שוב 🔄</button>
-      <button class="back-btn"    onclick="goHome()">בחר רמה אחרת</button>
+    <div class="ri">😢</div>
+    <div class="rt lose">נגמרו הניסיונות!</div>
+    <div class="rs" id="overStats"></div>
+    <div class="actions">
+      <button class="btn-primary" onclick="startGame(curDiff, curMode)">נסה שוב 🔄</button>
+      <button class="btn-ghost"   onclick="goHome()">בחר מצב אחר</button>
     </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="screen" id="sStats">
+    <h1>📊 הסטטיסטיקות שלי</h1>
+    <div class="diff-tab-row" id="statsTabs"></div>
+    <div id="statsBody"></div>
+    <button class="btn-ghost" style="width:100%;margin-top:10px" onclick="goHome()">← חזור</button>
   </div>
 
 </div>
-
 <script>
-// ─── CONFIG ────────────────────────────────────────────────
+// ══════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════
 const DIFFS = {
-  easy:   { label:'קל',     min:1, max:100,   maxAtt:10 },
-  medium: { label:'בינוני', min:1, max:1000,  maxAtt:15 },
-  hard:   { label:'קשה',    min:1, max:10000, maxAtt:20 },
+  easy:   {label:'קל',     min:1, max:100,   maxAtt:10},
+  medium: {label:'בינוני', min:1, max:1000,  maxAtt:15},
+  hard:   {label:'קשה',    min:1, max:10000, maxAtt:20},
+};
+const MODES = {
+  normal:{label:'רגיל',   icon:'🎮', timer:true,  limit:true },
+  speed: {label:'מהירות', icon:'⚡', timer:true,  limit:false},
+  zen:   {label:'זן',     icon:'🧘', timer:false, limit:false},
+  daily: {label:'יומי',   icon:'📅', timer:true,  limit:true },
 };
 
-// ─── STATE ─────────────────────────────────────────────────
-let secret, attLeft, maxAtt, won, over, currentDiffKey, diff;
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+let secret, attLeft, maxAtt, won, over;
+let curDiff, curMode, diff, mode;
 let timerIv, elapsed, timerOn;
-let hintUsed, history = [], challengeMode = false;
+let hintUsed, histArr=[], challengeMode=false;
+let audioCtx=null;
 
-// ─── TEMPERATURE ───────────────────────────────────────────
-function setTemp(dist, range) {
-  const p = dist / range;
-  const card = document.getElementById('card');
-  let bg, border, shadow;
-  if      (p > 0.60) { bg='#0d1a3a'; border='#1a4a7a'; shadow='rgba(96,165,250,0.2)';  }
-  else if (p > 0.35) { bg='#1a1a2e'; border='#2a2a5a'; shadow='rgba(167,139,250,0.12)';}
-  else if (p > 0.18) { bg='#2a1505'; border='#6a3a10'; shadow='rgba(251,191,36,0.18)'; }
-  else if (p > 0.06) { bg='#3a0a05'; border='#8a2a15'; shadow='rgba(249,115,22,0.25)'; }
-  else               { bg='#4a0303'; border='#bb1515'; shadow='rgba(248,113,113,0.35)';}
-  card.style.background  = bg;
-  card.style.borderColor = border;
-  card.style.boxShadow   = `0 20px 60px rgba(0,0,0,0.5), 0 0 50px ${shadow}`;
+// ══════════════════════════════════════════════════
+//  AUDIO
+// ══════════════════════════════════════════════════
+function getAudioCtx(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
 }
-
-function resetTemp() {
-  const card = document.getElementById('card');
-  card.style.background  = '#1a1a2e';
-  card.style.borderColor = '#2a2a4a';
-  card.style.boxShadow   = '0 20px 60px rgba(0,0,0,0.5)';
+function playTone(freq,dur,vol=.25,type='sine'){
+  try{
+    const ctx=getAudioCtx(),o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=freq;o.type=type;
+    g.gain.setValueAtTime(vol,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+dur);
+  }catch(e){}
 }
-
-// ─── ARROWS ────────────────────────────────────────────────
-function sz(dist, range) {
-  return Math.round(28 + (dist / range) * 100);
+function soundForDist(dist,range){
+  const p=dist/range;
+  const freq=p>.6?160:p>.4?220:p>.25?320:p>.12?440:p>.04?600:800;
+  playTone(freq,.18);
 }
-function svgUp(px, col) {
-  return `<svg width="${px}" height="${px}" viewBox="0 0 100 100"><polygon points="50,4 96,82 4,82" fill="${col}"/></svg>`;
+function soundWin(){
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,.3,.3),i*110));
 }
-function svgDn(px, col) {
-  return `<svg width="${px}" height="${px}" viewBox="0 0 100 100"><polygon points="50,96 4,18 96,18" fill="${col}"/></svg>`;
+function soundLose(){
+  [300,250,200].forEach((f,i)=>setTimeout(()=>playTone(f,.25,.25,'sawtooth'),i*120));
 }
 
-// ─── TIMER ─────────────────────────────────────────────────
-function startTimer() {
-  if (timerOn) return;
-  timerOn = true; elapsed = 0;
-  timerIv = setInterval(() => {
+// ══════════════════════════════════════════════════
+//  HAPTIC
+// ══════════════════════════════════════════════════
+function haptic(pattern){try{navigator.vibrate&&navigator.vibrate(pattern)}catch(e){}}
+
+// ══════════════════════════════════════════════════
+//  TEMPERATURE
+// ══════════════════════════════════════════════════
+function setTemp(dist,range){
+  const p=dist/range, c=document.getElementById('card');
+  let bg,border,shadow;
+  if(p>.6) {bg='#0d1a3a';border='#1a4a7a';shadow='rgba(96,165,250,.2)'}
+  else if(p>.35){bg='#1a1a2e';border='#2a2a5a';shadow='rgba(167,139,250,.12)'}
+  else if(p>.18){bg='#2a1505';border='#6a3a10';shadow='rgba(251,191,36,.18)'}
+  else if(p>.06){bg='#3a0a05';border='#8a2a15';shadow='rgba(249,115,22,.25)'}
+  else          {bg='#4a0303';border='#bb1515';shadow='rgba(248,113,113,.35)'}
+  c.style.background=bg;c.style.borderColor=border;
+  c.style.boxShadow=`0 20px 60px rgba(0,0,0,.5),0 0 50px ${shadow}`;
+}
+function resetTemp(){
+  const c=document.getElementById('card');
+  c.style.background='#1a1a2e';c.style.borderColor='#2a2a4a';
+  c.style.boxShadow='0 20px 60px rgba(0,0,0,.5)';
+}
+
+// ══════════════════════════════════════════════════
+//  GAUGE
+// ══════════════════════════════════════════════════
+function showGauge(val){
+  const w=document.getElementById('gaugeWrap');
+  w.style.display='block';
+  const pct=((val-diff.min)/(diff.max-diff.min))*100;
+  document.getElementById('gFill').style.width=pct+'%';
+  document.getElementById('gMark').style.left=pct+'%';
+  document.getElementById('gMin').textContent=diff.min.toLocaleString();
+  document.getElementById('gMax').textContent=diff.max.toLocaleString();
+}
+
+// ══════════════════════════════════════════════════
+//  ARROWS
+// ══════════════════════════════════════════════════
+function sz(dist,range){return Math.round(26+(dist/range)*104)}
+function svgUp(px,col){return`<svg width="${px}" height="${px}" viewBox="0 0 100 100"><polygon points="50,4 96,82 4,82" fill="${col}"/></svg>`}
+function svgDn(px,col){return`<svg width="${px}" height="${px}" viewBox="0 0 100 100"><polygon points="50,96 4,18 96,18" fill="${col}"/></svg>`}
+
+// ══════════════════════════════════════════════════
+//  TIMER
+// ══════════════════════════════════════════════════
+function startTimer(){
+  if(timerOn||!mode.timer)return;
+  timerOn=true;elapsed=0;
+  timerIv=setInterval(()=>{
     elapsed++;
-    const m = Math.floor(elapsed/60), s = elapsed%60;
-    document.getElementById('timerEl').textContent = `⏱ ${m}:${String(s).padStart(2,'0')}`;
-  }, 1000);
+    const m=Math.floor(elapsed/60),s=elapsed%60;
+    document.getElementById('timerEl').textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+  },1000);
 }
-function stopTimer() { clearInterval(timerIv); }
+function stopTimer(){clearInterval(timerIv)}
 
-// ─── BEST SCORE ────────────────────────────────────────────
-function getBest(k)       { const v=localStorage.getItem('best_'+k); return v?JSON.parse(v):null; }
-function saveBest(k,a,s)  { localStorage.setItem('best_'+k, JSON.stringify({a,s})); }
-function showBest() {
-  const b = getBest(currentDiffKey);
-  document.getElementById('bestEl').textContent = b ? `🏆 שיא: ${b.a} ניסיונות` : '';
+// ══════════════════════════════════════════════════
+//  STATS (localStorage)
+// ══════════════════════════════════════════════════
+function getStats(dk){
+  const k='gstats_'+dk;
+  const v=localStorage.getItem(k);
+  if(v) return JSON.parse(v);
+  return{played:0,won:0,streak:0,bestStreak:0,dist:{},bestAtt:null,bestSec:null};
+}
+function saveStats(dk,s){localStorage.setItem('gstats_'+dk,JSON.stringify(s))}
+function recordWin(dk,att,sec){
+  const s=getStats(dk);
+  s.played++;s.won++;s.streak++;
+  if(s.streak>s.bestStreak)s.bestStreak=s.streak;
+  s.dist[att]=(s.dist[att]||0)+1;
+  if(s.bestAtt===null||att<s.bestAtt||(att===s.bestAtt&&sec<s.bestSec)){s.bestAtt=att;s.bestSec=sec}
+  saveStats(dk,s);
+  return s;
+}
+function recordLoss(dk){
+  const s=getStats(dk);
+  s.played++;s.streak=0;
+  saveStats(dk,s);
 }
 
-// ─── ATTEMPTS DISPLAY ──────────────────────────────────────
-function showAtt() {
-  const el = document.getElementById('attEl');
-  el.textContent = `${attLeft} ניסיונות נותרו`;
-  el.className = 'att ' + (attLeft > 7 ? 'ok' : attLeft > 3 ? 'warn' : 'bad');
+function statsKey(){return curDiff+(curMode==='daily'?'_daily':'')}
+
+function showBest(){
+  const s=getStats(statsKey());
+  const el=document.getElementById('bestEl');
+  el.textContent=s.bestAtt!==null?`🏆 שיא: ${s.bestAtt} ניסיונות`:'';
 }
 
-// ─── HISTORY ───────────────────────────────────────────────
-function addHist(val, dir, dist) {
-  const c = document.getElementById('history');
-  const d = document.createElement('div');
-  d.className = 'history-item';
-  let arrow, cls;
-  if (dir==='win')          { arrow='✓';  cls='win'; }
-  else if (dist<=10)        { arrow=dir==='up'?'↑🔥':'↓🔥'; cls='hot'; }
-  else if (dir==='up')      { arrow='↑';  cls='up';  }
-  else                      { arrow='↓';  cls='down';}
-  d.innerHTML = `
-    <span style="color:#4b5563">ניסיון ${history.length}</span>
-    <span class="h-num">${val.toLocaleString()}</span>
-    <span class="h-arr ${cls}">${arrow}</span>`;
+// ══════════════════════════════════════════════════
+//  ATT DISPLAY
+// ══════════════════════════════════════════════════
+function showAtt(){
+  const el=document.getElementById('attEl');
+  if(!mode.limit){el.textContent='∞ ניסיונות';el.className='att none';return}
+  el.textContent=`${attLeft} ניסיונות נותרו`;
+  el.className='att '+(attLeft>7?'ok':attLeft>3?'warn':'bad');
+}
+
+// ══════════════════════════════════════════════════
+//  HISTORY
+// ══════════════════════════════════════════════════
+function addHist(val,dir,dist){
+  histArr.push(val);
+  const c=document.getElementById('history');
+  const d=document.createElement('div');d.className='hi';
+  let arrow,cls;
+  if(dir==='win')     {arrow='✓';  cls='win'}
+  else if(dist<=10)   {arrow=dir==='up'?'↑🔥':'↓🔥';cls='hot'}
+  else if(dir==='up') {arrow='↑';  cls='up'}
+  else                {arrow='↓';  cls='down'}
+  d.innerHTML=`<span style="color:#374151">×${histArr.length}</span>
+    <span class="hn">${val.toLocaleString()}</span>
+    <span class="ha ${cls}">${arrow}</span>`;
   c.prepend(d);
 }
 
-// ─── HINT ──────────────────────────────────────────────────
-function useHint() {
-  if (hintUsed) return;
-  hintUsed = true;
-  document.getElementById('hintBtn').disabled = true;
-  const opts = [
-    `המספר הוא ${secret%2===0?'זוגי':'אי-זוגי'}`,
-    `המספר ${secret%5===0?'מתחלק ב-5':'לא מתחלק ב-5'}`,
+// ══════════════════════════════════════════════════
+//  HINT
+// ══════════════════════════════════════════════════
+function useHint(){
+  if(hintUsed)return;
+  hintUsed=true;document.getElementById('hintBtn').disabled=true;
+  const opts=[
+    `המספר ${secret%2===0?'זוגי':'אי-זוגי'}`,
+    `המספר ${secret%5===0?'':'לא '}מתחלק ב-5`,
   ];
-  const band = Math.round((diff.max-diff.min)*0.18);
-  const lo = Math.max(diff.min, secret-band), hi = Math.min(diff.max, secret+band);
+  const band=Math.round((diff.max-diff.min)*.18);
+  const lo=Math.max(diff.min,secret-band),hi=Math.min(diff.max,secret+band);
   opts.push(`המספר בין ${lo.toLocaleString()} ל-${hi.toLocaleString()}`);
-  document.getElementById('hintDisplay').textContent =
-    '💡 ' + opts[Math.floor(Math.random()*opts.length)];
+  document.getElementById('hintDisp').textContent='💡 '+opts[Math.floor(Math.random()*opts.length)];
 }
 
-// ─── CONFETTI ──────────────────────────────────────────────
-function confetti() {
-  const cv = document.getElementById('confettiCanvas');
-  const cx = cv.getContext('2d');
-  cv.width = innerWidth; cv.height = innerHeight;
-  const COLORS = ['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#fb7185'];
-  const ps = Array.from({length:150}, ()=>({
-    x:Math.random()*cv.width, y:-20,
-    r:Math.random()*7+4,
-    dx:(Math.random()-.5)*4, dy:Math.random()*4+2,
-    col:COLORS[Math.floor(Math.random()*COLORS.length)],
-    ang:Math.random()*360, spin:(Math.random()-.5)*6, op:1,
-  }));
-  let raf;
-  function draw() {
-    cx.clearRect(0,0,cv.width,cv.height);
-    let alive=false;
-    ps.forEach(p=>{
-      if(p.y<cv.height+20){ alive=true;
-        p.x+=p.dx; p.y+=p.dy; p.ang+=p.spin;
-        p.op=Math.max(0,1-p.y/cv.height);
-        cx.save(); cx.globalAlpha=p.op; cx.translate(p.x,p.y);
-        cx.rotate(p.ang*Math.PI/180); cx.fillStyle=p.col;
-        cx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); cx.restore();
-      }
-    });
-    if(alive) raf=requestAnimationFrame(draw);
-    else cx.clearRect(0,0,cv.width,cv.height);
-  }
-  draw();
-  setTimeout(()=>{ cancelAnimationFrame(raf); cx.clearRect(0,0,cv.width,cv.height); },5000);
-}
-
-// ─── CHALLENGE LINK ────────────────────────────────────────
-function buildLink() {
-  return `${location.href.split('?')[0]}?c=${secret}_${currentDiffKey}`;
-}
-function copyChallenge() {
-  navigator.clipboard.writeText(buildLink()).then(()=>{
-    document.getElementById('copyConfirm').textContent = '✓ הקישור הועתק! שלח לחבר שלך 🚀';
-    setTimeout(()=>document.getElementById('copyConfirm').textContent='', 3000);
+// ══════════════════════════════════════════════════
+//  QUICK BUTTONS
+// ══════════════════════════════════════════════════
+function buildQuickBtns(){
+  const row=document.getElementById('quickRow');
+  row.innerHTML='';
+  const steps=diff.max<=100?[-10,-1,1,10]:diff.max<=1000?[-100,-10,-1,1,10,100]:[-1000,-100,-10,1,10,100,1000];
+  steps.forEach(n=>{
+    const b=document.createElement('button');
+    b.className='qbtn';
+    b.textContent=(n>0?'+':'')+n.toLocaleString();
+    b.onclick=()=>nudge(n);
+    row.appendChild(b);
   });
 }
-function checkChallenge() {
-  const c = new URLSearchParams(location.search).get('c');
-  if (!c) return false;
-  const [n, dk] = c.split('_');
-  if (!n || !DIFFS[dk]) return false;
-  challengeMode = true;
-  startGame(dk, parseInt(n,10));
-  return true;
+function nudge(n){
+  const inp=document.getElementById('guessInput');
+  const cur=parseInt(inp.value)||Math.round((diff.min+diff.max)/2);
+  inp.value=Math.min(diff.max,Math.max(diff.min,cur+n));
 }
 
-// ─── SCREENS ───────────────────────────────────────────────
-function show(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+// ══════════════════════════════════════════════════
+//  CONFETTI
+// ══════════════════════════════════════════════════
+function confetti(){
+  const cv=document.getElementById('confettiCanvas'),cx=cv.getContext('2d');
+  cv.width=innerWidth;cv.height=innerHeight;
+  const COLS=['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#fb7185'];
+  const ps=Array.from({length:160},()=>({
+    x:Math.random()*cv.width,y:-20,r:Math.random()*7+4,
+    dx:(Math.random()-.5)*4,dy:Math.random()*4+2.5,
+    col:COLS[Math.floor(Math.random()*COLS.length)],
+    ang:Math.random()*360,spin:(Math.random()-.5)*6,op:1
+  }));
+  let raf;
+  function draw(){
+    cx.clearRect(0,0,cv.width,cv.height);let alive=false;
+    ps.forEach(p=>{if(p.y<cv.height+20){alive=true;
+      p.x+=p.dx;p.y+=p.dy;p.ang+=p.spin;p.op=Math.max(0,1-p.y/cv.height);
+      cx.save();cx.globalAlpha=p.op;cx.translate(p.x,p.y);
+      cx.rotate(p.ang*Math.PI/180);cx.fillStyle=p.col;
+      cx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);cx.restore()}});
+    if(alive)raf=requestAnimationFrame(draw);
+    else cx.clearRect(0,0,cv.width,cv.height);
+  }
+  draw();setTimeout(()=>{cancelAnimationFrame(raf);cx.clearRect(0,0,cv.width,cv.height)},5000);
 }
 
-// ─── GAME START ────────────────────────────────────────────
-function startGame(key, forced) {
-  currentDiffKey = key;
-  diff   = DIFFS[key];
-  secret = forced ?? (Math.floor(Math.random()*(diff.max-diff.min+1))+diff.min);
-  attLeft = maxAtt = diff.maxAtt;
-  won=over=hintUsed=timerOn=false; history=[];
+// ══════════════════════════════════════════════════
+//  SHARE / CHALLENGE
+// ══════════════════════════════════════════════════
+function buildShareText(att,sec){
+  const modeLabel=MODES[curMode].label;
+  const diffLabel=DIFFS[curDiff]?DIFFS[curDiff].label:'';
+  const m=Math.floor(sec/60),s=String(sec%60).padStart(2,'0');
+  const used=maxAtt?`${att}/${maxAtt}`:`${att}`;
+  const boxes=(mode.limit?Array.from({length:maxAtt},(_, i)=>i<att?'🟪':'⬜'):Array(att).fill('🟪')).join('');
+  return`🎯 נחש את המספר\n${modeLabel} ${diffLabel} | ${used} ניסיונות${mode.timer?` | ${m}:${s}`:''}\n${boxes}`;
+}
+function copyShare(){
+  navigator.clipboard.writeText(document.getElementById('shareCard').textContent.trim()).then(()=>flashCopy('✓ הועתק!'));
+}
+function copyChallenge(){
+  const url=`${location.href.split('?')[0]}?c=${secret}_${curDiff}_${curMode}`;
+  navigator.clipboard.writeText(url).then(()=>flashCopy('✓ קישור אתגר הועתק!'));
+}
+function flashCopy(msg){
+  const el=document.getElementById('copyOk');
+  el.textContent=msg;setTimeout(()=>el.textContent='',3000);
+}
 
-  document.getElementById('arrowZone').innerHTML  = '';
-  document.getElementById('history').innerHTML    = '';
-  document.getElementById('hintDisplay').textContent = '';
-  document.getElementById('hintBtn').disabled     = false;
-  document.getElementById('guessBtn').disabled    = false;
-  document.getElementById('guessInput').disabled  = false;
-  document.getElementById('guessInput').min       = diff.min;
-  document.getElementById('guessInput').max       = diff.max;
-  document.getElementById('guessInput').placeholder = `${diff.min.toLocaleString()}–${diff.max.toLocaleString()}`;
-  document.getElementById('guessInput').value     = '';
-  document.getElementById('timerEl').textContent  = '⏱ 0:00';
-  document.getElementById('challengeBadge').style.display = challengeMode ? 'block' : 'none';
+// ══════════════════════════════════════════════════
+//  SCREENS
+// ══════════════════════════════════════════════════
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 
-  resetTemp(); showAtt(); showBest();
+// ══════════════════════════════════════════════════
+//  DAILY NUMBER (date-seeded)
+// ══════════════════════════════════════════════════
+function dailyNumber(min,max){
+  const d=new Date(),seed=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
+  let h=seed^(seed>>>16);h=Math.imul(h,0x45d9f3b);h^=h>>>16;
+  return(Math.abs(h)%(max-min+1))+min;
+}
+
+// ══════════════════════════════════════════════════
+//  FLOW
+// ══════════════════════════════════════════════════
+function pickMode(m){
+  curMode=m;
+  if(m==='zen'){document.getElementById('diffModeLine').textContent='מצב זן — ללא טיימר, ללא הגבלה'}
+  else if(m==='speed'){document.getElementById('diffModeLine').textContent='מצב מהירות — ניסיונות חופשיים'}
+  else{document.getElementById('diffModeLine').textContent=''}
+  show('sDiff');
+}
+
+function startDaily(){
+  curMode='daily';curDiff='medium';
+  startGame('medium','daily',dailyNumber(1,1000));
+}
+
+function startGame(dk,modeKey,forced){
+  curDiff=dk||curDiff;
+  curMode=modeKey||curMode||'normal';
+  diff=DIFFS[curDiff];mode=MODES[curMode];
+  secret=forced??(Math.floor(Math.random()*(diff.max-diff.min+1))+diff.min);
+  maxAtt=mode.limit?diff.maxAtt:Infinity;
+  attLeft=mode.limit?diff.maxAtt:Infinity;
+  won=over=hintUsed=timerOn=false;histArr=[];elapsed=0;
+
+  // reset UI
+  ['arrowZone','history'].forEach(id=>document.getElementById(id).innerHTML='');
+  ['hintDisp'].forEach(id=>document.getElementById(id).textContent='');
+  document.getElementById('hintBtn').disabled=false;
+  document.getElementById('guessBtn').disabled=false;
+  document.getElementById('guessInput').disabled=false;
+  document.getElementById('guessInput').min=diff.min;
+  document.getElementById('guessInput').max=diff.max;
+  document.getElementById('guessInput').placeholder=`${diff.min.toLocaleString()}–${diff.max.toLocaleString()}`;
+  document.getElementById('guessInput').value='';
+  document.getElementById('timerEl').textContent=mode.timer?'⏱ 0:00':'';
+  document.getElementById('gaugeWrap').style.display='none';
+  document.getElementById('cbadge').style.display=challengeMode?'block':'none';
+
+  // mode badge
+  const bw=document.getElementById('modeBadgeWrap');
+  if(curMode!=='normal'){
+    bw.innerHTML=`<span class="mode-badge ${curMode}">${MODES[curMode].icon} ${MODES[curMode].label}</span>`;
+  } else bw.innerHTML='';
+
+  buildQuickBtns();
+  resetTemp();showAtt();showBest();
   show('sGame');
   document.getElementById('guessInput').focus();
 }
 
-// ─── MAIN GUESS ────────────────────────────────────────────
-function makeGuess() {
-  if (won || over) return;
-  const inp = document.getElementById('guessInput');
-  const val = parseInt(inp.value, 10);
-  if (!val || val<diff.min || val>diff.max) {
-    inp.style.borderColor='#f87171';
-    setTimeout(()=>inp.style.borderColor='',600);
-    return;
+// ══════════════════════════════════════════════════
+//  MAIN GUESS
+// ══════════════════════════════════════════════════
+function makeGuess(){
+  if(won||over)return;
+  const inp=document.getElementById('guessInput');
+  const val=parseInt(inp.value,10);
+  if(!val||val<diff.min||val>diff.max){
+    inp.classList.add('shake');
+    setTimeout(()=>inp.classList.remove('shake'),400);
+    haptic(80);return;
   }
 
   startTimer();
-  attLeft--; history.push(val);
+  if(mode.limit)attLeft--;
   showAtt();
 
-  const delta = secret - val;
-  const dist  = Math.abs(delta);
-  const range = diff.max - diff.min;
-  const zone  = document.getElementById('arrowZone');
+  const delta=secret-val,dist=Math.abs(delta),range=diff.max-diff.min;
+  const zone=document.getElementById('arrowZone');
+  setTemp(dist,range);
+  showGauge(val);
+  soundForDist(dist,range);
 
-  setTemp(dist, range);
-
-  if (delta === 0) {
-    won = true; stopTimer();
+  if(delta===0){
+    won=true;stopTimer();
     addHist(val,'win',0);
-    zone.innerHTML = `<div class="arrow winanim" style="gap:4px">
-      <div style="font-size:2.2rem">🎉</div>
-      <div class="msg" style="color:#34d399;font-size:1.3rem">ניחשת!</div>
-    </div>`;
-    confetti();
+    zone.innerHTML=`<div class="arrow wa"><div style="font-size:2rem">🎉</div>
+      <div class="msg" style="color:#34d399;font-size:1.2rem">ניחשת!</div></div>`;
+    confetti();soundWin();haptic([100,50,200]);
 
-    const used = maxAtt - attLeft;
-    const best = getBest(currentDiffKey);
-    let newBestText = '';
-    if (!best || used<best.a || (used===best.a && elapsed<best.s)) {
-      saveBest(currentDiffKey, used, elapsed);
-      newBestText = '🏆 שיא אישי חדש!';
-    }
-    const m=Math.floor(elapsed/60), s=elapsed%60;
-    document.getElementById('winStats').innerHTML =
+    const used=mode.limit?maxAtt-attLeft:histArr.length;
+    const st=recordWin(statsKey(),used,elapsed);
+    const isNew=st.bestAtt===used&&st.bestSec===elapsed&&st.won===1||
+                (st.bestAtt===used&&st.bestSec===elapsed&&st.won<=3);
+
+    const m=Math.floor(elapsed/60),s=String(elapsed%60).padStart(2,'0');
+    document.getElementById('winStats').innerHTML=
       `המספר היה <strong>${secret.toLocaleString()}</strong><br>
-       ניחשת ב-<strong>${used}</strong> ניסיונות<br>
-       זמן: <strong>${m}:${String(s).padStart(2,'0')}</strong>`;
-    document.getElementById('newBest').textContent = newBestText;
-    setTimeout(()=>show('sWin'), 900);
+       ניחשת ב-<strong>${used}</strong> ניסיונות${mode.timer?`<br>זמן: <strong>${m}:${s}</strong>`:''}`;
+    document.getElementById('newBest').textContent=st.won===1||used===st.bestAtt?'🏆 שיא אישי חדש!':'';
+    const shareText=buildShareText(used,elapsed);
+    document.getElementById('shareCard').textContent=shareText;
+    setTimeout(()=>show('sWin'),900);
 
-  } else if (dist <= 10) {
-    const col = '#fbbf24';
-    const svg = delta>0 ? svgUp(sz(dist,range),col) : svgDn(sz(dist,range),col);
-    const lbl = delta>0 ? '🔥 עלה קצת ↑' : '🔥 רד קצת ↓';
-    zone.innerHTML = `<div class="arrow hot">
-      ${svg}
-      <div class="msg hot">${lbl}</div>
-      <div class="hint-text">אתה בוער! מרחק ${dist}</div>
-    </div>`;
-    addHist(val, delta>0?'up':'down', dist);
+  } else if(dist<=10){
+    const col='#fbbf24';
+    zone.innerHTML=`<div class="arrow hot">
+      ${delta>0?svgUp(sz(dist,range),col):svgDn(sz(dist,range),col)}
+      <div class="msg hot">${delta>0?'🔥 עלה קצת ↑':'🔥 רד קצת ↓'}</div>
+      <div class="htxt">אתה בוער! מרחק ${dist}</div></div>`;
+    addHist(val,delta>0?'up':'down',dist);
 
-  } else if (delta > 0) {
-    const far = dist > range*0.5;
-    zone.innerHTML = `<div class="arrow up">
+  } else if(delta>0){
+    const far=dist>range*.5;
+    zone.innerHTML=`<div class="arrow up">
       ${svgUp(sz(dist,range),'#60a5fa')}
       <div class="msg higher">גבוה יותר ↑</div>
-      <div class="hint-text">${far?'הרבה יותר גבוה!':dist<=80?'קרוב! המשך':'קצת יותר גבוה'}</div>
-    </div>`;
+      <div class="htxt">${far?'הרבה יותר גבוה!':dist<=80?'קרוב! המשך':'קצת יותר גבוה'}</div></div>`;
     addHist(val,'up',dist);
 
   } else {
-    const far = dist > range*0.5;
-    zone.innerHTML = `<div class="arrow down">
+    const far=dist>range*.5;
+    zone.innerHTML=`<div class="arrow down">
       ${svgDn(sz(dist,range),'#f97316')}
       <div class="msg lower">נמוך יותר ↓</div>
-      <div class="hint-text">${far?'הרבה יותר נמוך!':dist<=80?'קרוב! המשך':'קצת יותר נמוך'}</div>
-    </div>`;
+      <div class="htxt">${far?'הרבה יותר נמוך!':dist<=80?'קרוב! המשך':'קצת יותר נמוך'}</div></div>`;
     addHist(val,'down',dist);
   }
 
-  if (!won && attLeft===0) {
-    over=true; stopTimer();
-    document.getElementById('guessBtn').disabled  = true;
-    document.getElementById('guessInput').disabled = true;
-    document.getElementById('overStats').innerHTML =
+  if(!won&&mode.limit&&attLeft<=0){
+    over=true;stopTimer();
+    recordLoss(statsKey());
+    soundLose();haptic([200,100,200]);
+    document.getElementById('guessBtn').disabled=true;
+    document.getElementById('guessInput').disabled=true;
+    document.getElementById('overStats').innerHTML=
       `המספר היה <strong>${secret.toLocaleString()}</strong><br>
-       ניסית <strong>${maxAtt}</strong> פעמים ולא הצלחת 😅<br>
+       ניסית <strong>${maxAtt}</strong> פעמים<br>
        <span style="color:#6b7280">בפעם הבאה תצליח!</span>`;
-    setTimeout(()=>show('sOver'), 1200);
+    setTimeout(()=>show('sOver'),1300);
+  }
+  inp.value='';inp.focus();
+}
+
+// ══════════════════════════════════════════════════
+//  STATS SCREEN
+// ══════════════════════════════════════════════════
+function showStats(){
+  const tabs=['easy','medium','hard'];
+  let activeTab=tabs[0];
+
+  function renderTabs(){
+    document.getElementById('statsTabs').innerHTML=tabs.map(dk=>
+      `<button class="diff-tab${dk===activeTab?' active':''}" onclick="switchStatsTab('${dk}')">${DIFFS[dk].label}</button>`
+    ).join('');
   }
 
-  inp.value=''; inp.focus();
+  window.switchStatsTab=function(dk){activeTab=dk;renderTabs();renderBody()};
+
+  function renderBody(){
+    const s=getStats(activeTab);
+    const winRate=s.played?Math.round(s.won/s.played*100):0;
+    const avgAtt=s.won?(Object.entries(s.dist).reduce((a,[k,v])=>a+Number(k)*v,0)/s.won).toFixed(1):'—';
+    const maxDist=Math.max(...Object.values(s.dist),1);
+    const maxAttForDiff=DIFFS[activeTab].maxAtt;
+
+    let distRows='';
+    for(let i=1;i<=maxAttForDiff;i++){
+      const cnt=s.dist[i]||0;
+      const pct=Math.round((cnt/maxDist)*100);
+      distRows+=`<div class="dist-bar-row">
+        <span class="dbl">${i}</span>
+        <div class="dist-track"><div class="dist-fill" style="width:${pct}%"></div></div>
+        <span class="dist-count">${cnt}</span>
+      </div>`;
+    }
+
+    document.getElementById('statsBody').innerHTML=`
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num">${s.played}</div><div class="stat-lbl">משחקים</div></div>
+        <div class="stat-card"><div class="stat-num">${winRate}%</div><div class="stat-lbl">אחוז ניצחון</div></div>
+        <div class="stat-card"><div class="stat-num">${s.streak}</div><div class="stat-lbl">רצף נוכחי</div></div>
+        <div class="stat-card"><div class="stat-num">${s.bestStreak}</div><div class="stat-lbl">רצף שיא</div></div>
+        <div class="stat-card"><div class="stat-num">${s.bestAtt||'—'}</div><div class="stat-lbl">ניסיון שיא</div></div>
+        <div class="stat-card"><div class="stat-num">${avgAtt}</div><div class="stat-lbl">ממוצע ניסיונות</div></div>
+      </div>
+      <div class="dist-title">התפלגות ניסיונות</div>
+      ${distRows}`;
+  }
+
+  renderTabs();renderBody();
+  show('sStats');
 }
 
-// ─── HOME ──────────────────────────────────────────────────
-function goHome() {
-  challengeMode = false;
-  history.replaceState({}, '', location.pathname);
-  resetTemp(); show('sDiff');
+// ══════════════════════════════════════════════════
+//  HOME
+// ══════════════════════════════════════════════════
+function goHome(){
+  challengeMode=false;
+  history.replaceState&&history.replaceState({},'',location.pathname);
+  resetTemp();show('sHome');
 }
 
-document.addEventListener('keydown', e=>{ if(e.key==='Enter') makeGuess(); });
-checkChallenge() || show('sDiff');
+// ══════════════════════════════════════════════════
+//  CHALLENGE PARAM
+// ══════════════════════════════════════════════════
+function checkChallenge(){
+  const c=new URLSearchParams(location.search).get('c');
+  if(!c)return false;
+  const parts=c.split('_');
+  if(parts.length<2)return false;
+  const [n,dk,mk]=parts;
+  if(!DIFFS[dk])return false;
+  challengeMode=true;
+  startGame(dk,mk||'normal',parseInt(n,10));
+  return true;
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter')makeGuess()});
+checkChallenge()||show('sHome');
 </script>
 </body>
 </html>
