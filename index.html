@@ -2,964 +2,541 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>נחש את המספר 🎯</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>הרפתקת המתנות 🎁</title>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100vh;display:flex;align-items:center;justify-content:center;
-      background:linear-gradient(-45deg,#0f0f1a,#1a1030,#0d1a2a,#1a0f22);
-      background-size:400% 400%;animation:bgShift 22s ease infinite;
-      font-family:'Segoe UI',Arial,sans-serif;color:#fff;overflow-x:hidden}
-    @keyframes bgShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    #confettiCanvas,#burstCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
-    #confettiCanvas{z-index:100}#burstCanvas{z-index:101}
-    .card{background:#1a1a2e;border:2px solid #2a2a4a;border-radius:24px;padding:36px 32px;
-      width:460px;max-width:96vw;text-align:center;
-      box-shadow:0 20px 60px rgba(0,0,0,.5);transition:background .7s,border-color .7s,box-shadow .7s}
-    .screen{display:none}.screen.active{display:block}
-    h1{font-size:1.55rem;color:#a78bfa;margin-bottom:5px}
-    .sub{color:#6b7280;font-size:.88rem;margin-bottom:24px}
-    @keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
-    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}
-      40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
-    @keyframes bounceUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-13px)}}
-    @keyframes bounceDown{0%,100%{transform:translateY(0)}50%{transform:translateY(13px)}}
-    @keyframes wobble{0%{transform:translateX(0)}20%{transform:translateX(-13px)}
-      40%{transform:translateX(13px)}60%{transform:translateX(-7px)}80%{transform:translateX(7px)}100%{transform:translateX(0)}}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;color:#fff;
+      user-select:none;touch-action:none}
+    #game{position:fixed;inset:0;display:block}
 
-    /* ── HOME ── */
-    .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-    .mode-btn{padding:16px 10px;border-radius:14px;border:2px solid transparent;
-      cursor:pointer;font-weight:700;transition:transform .15s,opacity .2s;background:#0f0f1a}
-    .mode-btn:hover{transform:scale(1.03)}.mode-btn:active{transform:scale(.97)}
-    .mode-btn .mi{font-size:1.6rem;display:block;margin-bottom:4px}
-    .mode-btn .ml{font-size:.95rem;display:block}
-    .mode-btn .ms{font-size:.72rem;opacity:.65;font-weight:400;display:block;margin-top:2px}
-    .mode-btn.normal{border-color:#a78bfa;color:#a78bfa}
-    .mode-btn.speed {border-color:#60a5fa;color:#60a5fa}
-    .mode-btn.zen   {border-color:#34d399;color:#34d399}
-    .mode-btn.daily {border-color:#fbbf24;color:#fbbf24}
-    .stats-link{background:none;border:none;color:#6b7280;font-size:.85rem;
-      cursor:pointer;text-decoration:underline;margin-top:4px}
-    .stats-link:hover{color:#a78bfa}
+    /* ── HUD ── */
+    .hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
+      align-items:flex-start;padding:12px 16px;z-index:5;pointer-events:none;font-weight:700}
+    .hud-pill{background:rgba(15,15,30,.62);backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.18);
+      border-radius:14px;padding:8px 14px;font-size:.92rem;display:flex;gap:14px;align-items:center}
+    .hud-pill .lv{color:#ffd54f}.hud-pill .pw{color:#80d8ff}.hud-pill .gf{color:#f48fb1}
+    .hud-right{text-align:left}
+    .hud-dist{font-size:.78rem;color:#e0e0e0;margin-top:5px;text-align:left;
+      background:rgba(15,15,30,.5);border-radius:10px;padding:3px 10px;display:inline-block}
 
-    /* ── DIFFICULTY ── */
-    .diff-btns{display:flex;flex-direction:column;gap:10px}
-    .diff-btn{padding:16px 18px;border-radius:14px;border:2px solid transparent;
-      cursor:pointer;font-weight:700;transition:transform .15s;text-align:right}
-    .diff-btn:hover{transform:scale(1.02)}.diff-btn:active{transform:scale(.98)}
-    .diff-btn .dt{font-size:1.05rem;display:block}
-    .diff-btn .ds{font-size:.78rem;opacity:.65;font-weight:400;margin-top:2px;display:block}
-    .diff-btn.easy  {background:#0d3321;border-color:#34d399;color:#34d399}
-    .diff-btn.medium{background:#2d2006;border-color:#fbbf24;color:#fbbf24}
-    .diff-btn.hard  {background:#3a0a0a;border-color:#f87171;color:#f87171}
-    .back-sm{background:none;border:none;color:#6b7280;font-size:.82rem;cursor:pointer;
-      margin-top:12px;text-decoration:underline}
-    .back-sm:hover{color:#a78bfa}
+    /* ── WALK BUTTONS ── */
+    .pad{position:fixed;bottom:22px;left:0;right:0;display:flex;justify-content:space-between;
+      padding:0 22px;z-index:5;pointer-events:none}
+    .walk-btn{pointer-events:auto;width:78px;height:78px;border-radius:50%;border:none;
+      background:rgba(126,87,194,.82);color:#fff;font-size:2rem;font-weight:700;cursor:pointer;
+      box-shadow:0 8px 24px rgba(0,0,0,.45);transition:transform .1s,background .15s;
+      display:flex;align-items:center;justify-content:center}
+    .walk-btn:active{transform:scale(.9);background:rgba(149,117,205,.95)}
+    .hint-key{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:5;
+      font-size:.8rem;color:rgba(255,255,255,.7);background:rgba(15,15,30,.5);
+      padding:5px 14px;border-radius:20px;pointer-events:none}
 
-    /* ── GAME TOP BAR ── */
-    .top-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;font-size:.83rem}
-    .att{font-weight:700}.att.ok{color:#34d399}.att.warn{color:#fbbf24}.att.bad{color:#f87171}
-    .att.none{color:#6b7280}
-    .timer-box{text-align:left}
-    .timer{color:#a78bfa;font-weight:700;font-variant-numeric:tabular-nums}
-    .best-label{color:#fbbf24;font-size:.75rem;margin-top:1px}
-    .mode-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.72rem;
-      font-weight:700;margin-bottom:10px}
-    .mode-badge.speed{background:#1a2a4a;color:#60a5fa;border:1px solid #60a5fa}
-    .mode-badge.zen  {background:#0d2a1a;color:#34d399;border:1px solid #34d399}
-    .mode-badge.daily{background:#2a2006;color:#fbbf24;border:1px solid #fbbf24}
+    /* ── OVERLAYS ── */
+    .overlay{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+      background:rgba(8,8,20,.72);backdrop-filter:blur(4px);padding:18px}
+    .overlay.active{display:flex;animation:fade .25s ease}
+    @keyframes fade{from{opacity:0}to{opacity:1}}
+    .card{background:#15152a;border:2px solid #34344f;border-radius:24px;padding:30px 26px;
+      width:430px;max-width:95vw;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6);
+      animation:popin .4s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes popin{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+    .big-emoji{font-size:3.4rem;margin-bottom:8px;display:block}
+    h1{font-size:1.7rem;margin-bottom:6px}
+    h1.win{color:#69f0ae}h1.lose{color:#ff8a80}
+    .sub{color:#b0b0c8;font-size:.95rem;margin-bottom:20px;line-height:1.6}
+    .sub strong{color:#fff}
+    .btn{display:block;width:100%;padding:14px;border-radius:14px;border:none;cursor:pointer;
+      font-size:1rem;font-weight:700;margin-top:10px;transition:transform .1s,filter .15s}
+    .btn:active{transform:scale(.97)}
+    .btn-go{background:linear-gradient(90deg,#7e57c2,#9575cd);color:#fff}
+    .btn-go:hover{filter:brightness(1.1)}
+    .btn-ghost{background:transparent;border:2px solid #44445f;color:#b0b0c8}
 
-    /* ── CHALLENGE BADGE ── */
-    .cbadge{background:#0d2a1a;border:1.5px solid #34d399;border-radius:10px;
-      padding:9px 12px;font-size:.83rem;color:#9ca3af;margin-bottom:12px}
-    .cbadge strong{color:#34d399}
+    /* ── CHALLENGE ── */
+    .ch-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:.95rem}
+    .hearts{letter-spacing:2px;font-size:1.05rem}
+    .ch-timer{color:#80d8ff;font-weight:700;font-variant-numeric:tabular-nums}
+    .ch-arrow{height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      margin-bottom:12px}
+    .ch-arrow .ar{font-size:3rem;line-height:1;animation:bob .7s ease-in-out infinite}
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    .ch-msg{font-size:1.15rem;font-weight:700;margin-top:6px}
+    .ch-msg.up{color:#64b5f6}.ch-msg.down{color:#ffb74d}.ch-msg.hot{color:#ffd54f}
+    .ch-htxt{font-size:.82rem;color:#9090a8;margin-top:3px}
+    .ch-input{display:flex;gap:8px}
+    .ch-input input{flex:1;padding:13px;border-radius:13px;border:2px solid #34344f;background:#0e0e1e;
+      color:#fff;font-size:1.3rem;text-align:center;outline:none}
+    .ch-input input:focus{border-color:#9575cd}
+    .ch-input input::-webkit-inner-spin-button{-webkit-appearance:none}
+    .ch-input button{padding:0 22px;border-radius:13px;border:none;background:#7e57c2;color:#fff;
+      font-size:1rem;font-weight:700;cursor:pointer}
+    .ch-input button:active{transform:scale(.96)}
+    .ch-hist{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:12px;min-height:22px}
+    .ch-chip{background:#0e0e1e;border:1px solid #34344f;border-radius:8px;padding:3px 9px;
+      font-size:.8rem;font-weight:700;color:#c8c8d8;animation:popin .2s ease}
+    .ch-chip.up{border-color:#3a6da8}.ch-chip.down{border-color:#a87a3a}.ch-chip.hot{border-color:#a89a3a}
+    .pwgain{color:#80d8ff;font-weight:700;font-size:1.05rem;min-height:24px;margin-bottom:4px}
 
-    /* ── GAUGE ── */
-    .gauge-wrap{margin-bottom:10px;padding:0 4px}
-    .gauge-track{position:relative;height:6px;background:#1f1f3a;border-radius:3px;overflow:visible}
-    .gauge-fill{position:absolute;top:0;left:0;height:100%;border-radius:3px;
-      background:linear-gradient(90deg,#60a5fa,#a78bfa,#f97316);transition:width .4s ease}
-    .gauge-marker{position:absolute;top:-5px;width:16px;height:16px;border-radius:50%;
-      background:#fff;border:3px solid #a78bfa;transform:translateX(-50%);
-      transition:left .4s ease;box-shadow:0 0 8px rgba(167,139,250,.6)}
-    .gauge-labels{display:flex;justify-content:space-between;font-size:.7rem;color:#4b5563;margin-top:4px}
-
-    /* ── ARROW ZONE ── */
-    .arrow-zone{height:140px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
-    .arrow{display:flex;flex-direction:column;align-items:center;gap:5px}
-    .arrow.up   {animation:pop .3s cubic-bezier(.34,1.56,.64,1),bounceUp   1s ease-in-out .3s infinite}
-    .arrow.down {animation:pop .3s cubic-bezier(.34,1.56,.64,1),bounceDown 1s ease-in-out .3s infinite}
-    .arrow.hot  {animation:pop .3s cubic-bezier(.34,1.56,.64,1),wobble    .55s ease-in-out .3s infinite}
-    .arrow.wa   {animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
-    .msg{font-size:1rem;font-weight:700;margin-top:3px}
-    .msg.higher{color:#60a5fa}.msg.lower{color:#f97316}.msg.hot{color:#fbbf24}
-    .htxt{font-size:.8rem;color:#6b7280;margin-top:1px}
-
-    /* ── INPUT ── */
-    .input-row{display:flex;gap:8px}
-    input[type=number]{flex:1;padding:12px 10px;border-radius:12px;border:2px solid #2a2a4a;
-      background:#0f0f1a;color:#fff;font-size:1.2rem;text-align:center;outline:none;
-      transition:border-color .2s}
-    input[type=number]:focus{border-color:#a78bfa}
-    input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appearance:none}
-    input.shake{animation:shake .4s ease}
-    .guess-btn{padding:12px 16px;border-radius:12px;border:none;background:#a78bfa;
-      color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;white-space:nowrap;
-      transition:background .2s,transform .1s}
-    .guess-btn:hover{background:#7c3aed}.guess-btn:active{transform:scale(.97)}
-    .guess-btn:disabled{background:#374151;cursor:default}
-
-    /* ── QUICK BUTTONS ── */
-    .quick-row{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;justify-content:center}
-    .qbtn{padding:5px 10px;border-radius:8px;border:1.5px solid #2a2a4a;background:#0f0f1a;
-      color:#9ca3af;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s}
-    .qbtn:hover{border-color:#a78bfa;color:#a78bfa}.qbtn:active{transform:scale(.95)}
-    .qbtn:disabled{opacity:.3;cursor:default}
-
-    /* ── HINT ── */
-    .hint-row{margin-top:9px}
-    .hint-btn{padding:6px 14px;border-radius:9px;border:1.5px solid #fbbf24;
-      background:transparent;color:#fbbf24;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .2s}
-    .hint-btn:hover{background:#fbbf2420}
-    .hint-btn:disabled{border-color:#374151;color:#374151;cursor:default}
-    .hint-disp{margin-top:6px;font-size:.82rem;color:#fbbf24;font-weight:600;min-height:18px}
-
-    /* ── HISTORY ── */
-    .history{margin-top:12px;max-height:110px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
-    .history::-webkit-scrollbar{width:3px}
-    .history::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:3px}
-    .hi{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;
-      border-radius:7px;background:#0f0f1a;font-size:.8rem;color:#6b7280;animation:pop .2s ease}
-    .hi .hn{color:#e5e7eb;font-weight:700}
-    .hi .ha.up{color:#60a5fa}.hi .ha.down{color:#f97316}.hi .ha.hot{color:#fbbf24}.hi .ha.win{color:#34d399}
-
-    /* ── RESULT SCREENS ── */
-    .ri{font-size:2.8rem;margin-bottom:8px;animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
-    .rt{font-size:1.4rem;font-weight:700;margin-bottom:7px}
-    .rt.win{color:#34d399}.rt.lose{color:#f87171}
-    .rs{color:#9ca3af;font-size:.88rem;line-height:1.9;margin-bottom:16px}
-    .rs strong{color:#e5e7eb}
-    .nb{color:#fbbf24;font-weight:700;font-size:.92rem;margin-bottom:12px;min-height:20px}
-    .share-card{background:#0f0f1a;border:1.5px solid #2a2a4a;border-radius:10px;
-      padding:10px 14px;font-size:.8rem;color:#9ca3af;margin-bottom:12px;text-align:right;
-      font-family:monospace;white-space:pre-line;line-height:1.6}
-    .actions{display:flex;flex-direction:column;gap:8px}
-    .btn-primary{padding:12px;border-radius:12px;border:none;background:#a78bfa;
-      color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .2s}
-    .btn-primary:hover{background:#7c3aed}
-    .btn-challenge{padding:11px;border-radius:12px;border:2px solid #34d399;
-      background:transparent;color:#34d399;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .2s}
-    .btn-challenge:hover{background:#34d39920}
-    .btn-share{padding:11px;border-radius:12px;border:2px solid #60a5fa;
-      background:transparent;color:#60a5fa;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .2s}
-    .btn-share:hover{background:#60a5fa20}
-    .btn-ghost{padding:10px;border-radius:12px;border:2px solid #374151;
-      background:transparent;color:#6b7280;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .2s}
-    .btn-ghost:hover{background:#1a1a2e}
-    .copy-ok{font-size:.78rem;color:#34d399;min-height:16px;margin-top:2px}
-
-    /* ── STATS ── */
-    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
-    .stat-card{background:#0f0f1a;border-radius:12px;padding:12px;text-align:center}
-    .stat-num{font-size:1.6rem;font-weight:700;color:#a78bfa}
-    .stat-lbl{font-size:.75rem;color:#6b7280;margin-top:2px}
-    .dist-title{font-size:.85rem;color:#9ca3af;margin-bottom:8px;text-align:right}
-    .dist-bar-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;font-size:.78rem}
-    .dist-bar-row .dbl{width:18px;color:#6b7280;text-align:center;flex-shrink:0}
-    .dist-track{flex:1;height:14px;background:#1f1f3a;border-radius:3px;overflow:hidden}
-    .dist-fill{height:100%;background:#a78bfa;border-radius:3px;transition:width .5s}
-    .dist-count{width:22px;color:#9ca3af;text-align:left;flex-shrink:0}
-    .diff-tab-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-    .diff-tab{padding:5px 12px;border-radius:8px;border:1.5px solid #2a2a4a;
-      background:#0f0f1a;color:#6b7280;font-size:.8rem;cursor:pointer;transition:all .2s}
-    .diff-tab.active{border-color:#a78bfa;color:#a78bfa;background:#1a1030}
-
-    /* ── PROFILE BAR (rank / xp / coins) ── */
-    .profile-bar{display:flex;align-items:center;gap:10px;background:#0f0f1a;
-      border:1.5px solid #2a2a4a;border-radius:14px;padding:9px 12px;margin-bottom:18px}
-    .pb-rank{font-size:1.5rem;line-height:1;filter:drop-shadow(0 0 6px rgba(167,139,250,.5))}
-    .pb-mid{flex:1;text-align:right;min-width:0}
-    .pb-name{font-size:.82rem;font-weight:700;color:#e5e7eb}
-    .pb-name .lvl{color:#a78bfa}
-    .pb-xptrack{height:7px;background:#1f1f3a;border-radius:4px;overflow:hidden;margin-top:4px}
-    .pb-xpfill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa,#c4b5fd);
-      border-radius:4px;transition:width .6s ease;box-shadow:0 0 8px rgba(167,139,250,.5)}
-    .pb-coins{display:flex;align-items:center;gap:3px;font-weight:700;color:#fbbf24;
-      font-size:.9rem;white-space:nowrap}
-
-    /* ── WIN REWARDS ── */
-    .rewards{display:flex;justify-content:center;gap:10px;margin-bottom:12px}
-    .reward-chip{background:#0f0f1a;border:1.5px solid #2a2a4a;border-radius:12px;
-      padding:8px 14px;font-weight:700;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
-    .reward-chip.xp{color:#a78bfa;border-color:#a78bfa}
-    .reward-chip.coin{color:#fbbf24;border-color:#fbbf24}
-    .levelup{color:#34d399;font-weight:700;font-size:.95rem;margin-bottom:10px;
-      animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
-
-    /* ── ACHIEVEMENT TOASTS ── */
-    #toasts{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;
-      display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
-    .toast{display:flex;align-items:center;gap:10px;background:#1a1a2e;
-      border:2px solid #fbbf24;border-radius:14px;padding:10px 16px;min-width:240px;
-      box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 24px rgba(251,191,36,.25);
-      animation:toastIn .5s cubic-bezier(.34,1.56,.64,1)}
-    @keyframes toastIn{from{transform:translateY(-30px) scale(.7);opacity:0}to{transform:none;opacity:1}}
-    .toast.out{animation:toastOut .4s ease forwards}
-    @keyframes toastOut{to{transform:translateY(-30px) scale(.8);opacity:0}}
-    .toast .ti{font-size:1.7rem}
-    .toast .tlbl{font-size:.68rem;color:#fbbf24;font-weight:700}
-    .toast .tname{font-size:.92rem;font-weight:700;color:#fff}
-    .toast .tdesc{font-size:.74rem;color:#9ca3af}
+    .levels-line{font-size:.8rem;color:#8888a0;margin-top:16px;line-height:1.8}
+    #confetti{position:fixed;inset:0;z-index:25;pointer-events:none}
   </style>
 </head>
 <body>
-<canvas id="confettiCanvas"></canvas>
-<canvas id="burstCanvas"></canvas>
-<div id="toasts"></div>
-<div class="card" id="card">
+<canvas id="game"></canvas>
+<canvas id="confetti"></canvas>
 
-  <!-- HOME -->
-  <div class="screen active" id="sHome">
-    <div class="profile-bar" id="profileBar"></div>
-    <h1>נחש את המספר 🎯</h1>
-    <p class="sub">בחר מצב משחק</p>
-    <div class="mode-grid">
-      <button class="mode-btn normal" onclick="pickMode('normal')">
-        <span class="mi">🎮</span><span class="ml">רגיל</span>
-        <span class="ms">בחר קושי</span>
-      </button>
-      <button class="mode-btn speed" onclick="pickMode('speed')">
-        <span class="mi">⚡</span><span class="ml">מהירות</span>
-        <span class="ms">ללא הגבלת ניסיון</span>
-      </button>
-      <button class="mode-btn zen" onclick="pickMode('zen')">
-        <span class="mi">🧘</span><span class="ml">זן</span>
-        <span class="ms">ללא טיימר, ללא לחץ</span>
-      </button>
-      <button class="mode-btn daily" onclick="startDaily()">
-        <span class="mi">📅</span><span class="ml">יומי</span>
-        <span class="ms">אותו מספר לכולם היום</span>
-      </button>
-    </div>
-    <button class="stats-link" onclick="showStats()">📊 הסטטיסטיקות שלי</button>
+<!-- HUD -->
+<div class="hud">
+  <div class="hud-pill">
+    <span class="lv" id="hudLevel">שלב 1</span>
+    <span class="pw" id="hudPower">⚡ 0</span>
+    <span class="gf" id="hudGifts">🎁 0/4</span>
   </div>
-
-  <!-- DIFFICULTY PICKER -->
-  <div class="screen" id="sDiff">
-    <h1>בחר קושי</h1>
-    <p class="sub" id="diffModeLine"></p>
-    <div class="diff-btns">
-      <button class="diff-btn easy"   onclick="startGame('easy')">
-        <span class="dt">קל 🟢</span>
-        <span class="ds">1–100 &nbsp;•&nbsp; עד 10 ניסיונות</span>
-      </button>
-      <button class="diff-btn medium" onclick="startGame('medium')">
-        <span class="dt">בינוני 🟡</span>
-        <span class="ds">1–1,000 &nbsp;•&nbsp; עד 15 ניסיונות</span>
-      </button>
-      <button class="diff-btn hard"   onclick="startGame('hard')">
-        <span class="dt">קשה 🔴</span>
-        <span class="ds">1–10,000 &nbsp;•&nbsp; עד 20 ניסיונות</span>
-      </button>
-    </div>
-    <button class="back-sm" onclick="show('sHome')">← חזור</button>
-  </div>
-
-  <!-- GAME -->
-  <div class="screen" id="sGame">
-    <div id="modeBadgeWrap"></div>
-    <div class="top-bar">
-      <div>
-        <div class="att" id="attEl"></div>
-        <div class="best-label" id="bestEl"></div>
-      </div>
-      <div class="timer-box">
-        <div class="timer" id="timerEl">⏱ 0:00</div>
-      </div>
-    </div>
-    <div class="cbadge" id="cbadge" style="display:none">
-      <strong>🤝 אתגר חבר!</strong> אתה משחק על אותו מספר — תנצח?
-    </div>
-    <div class="gauge-wrap" id="gaugeWrap" style="display:none">
-      <div class="gauge-track">
-        <div class="gauge-fill" id="gFill" style="width:0%"></div>
-        <div class="gauge-marker" id="gMark" style="left:0%"></div>
-      </div>
-      <div class="gauge-labels">
-        <span id="gMin"></span><span id="gMax"></span>
-      </div>
-    </div>
-    <div class="arrow-zone" id="arrowZone"></div>
-    <div class="input-row">
-      <input id="guessInput" type="number">
-      <button class="guess-btn" id="guessBtn" onclick="makeGuess()">נחש</button>
-    </div>
-    <div class="quick-row" id="quickRow"></div>
-    <div class="hint-row">
-      <button class="hint-btn" id="hintBtn" onclick="useHint()">💡 רמז (1 פעם)</button>
-      <div class="hint-disp" id="hintDisp"></div>
-    </div>
-    <div class="history" id="history"></div>
-  </div>
-
-  <!-- WIN -->
-  <div class="screen" id="sWin">
-    <div class="ri">🎉</div>
-    <div class="rt win">כל הכבוד! ניחשת!</div>
-    <div class="rs" id="winStats"></div>
-    <div class="levelup" id="levelUp" style="display:none"></div>
-    <div class="rewards" id="winRewards"></div>
-    <div class="nb" id="newBest"></div>
-    <div class="share-card" id="shareCard"></div>
-    <div class="actions">
-      <button class="btn-share"     onclick="copyShare()">📋 שתף תוצאה</button>
-      <button class="btn-challenge" onclick="copyChallenge()">🤝 אתגר חבר</button>
-      <div class="copy-ok" id="copyOk"></div>
-      <button class="btn-primary"   onclick="goHome()">משחק חדש 🔄</button>
-    </div>
-  </div>
-
-  <!-- GAME OVER -->
-  <div class="screen" id="sOver">
-    <div class="ri">😢</div>
-    <div class="rt lose">נגמרו הניסיונות!</div>
-    <div class="rs" id="overStats"></div>
-    <div class="actions">
-      <button class="btn-primary" onclick="startGame(curDiff, curMode)">נסה שוב 🔄</button>
-      <button class="btn-ghost"   onclick="goHome()">בחר מצב אחר</button>
-    </div>
-  </div>
-
-  <!-- STATS -->
-  <div class="screen" id="sStats">
-    <h1>📊 הסטטיסטיקות שלי</h1>
-    <div class="diff-tab-row" id="statsTabs"></div>
-    <div id="statsBody"></div>
-    <button class="btn-ghost" style="width:100%;margin-top:10px" onclick="goHome()">← חזור</button>
-  </div>
-
+  <div class="hud-right"><div class="hud-dist" id="hudDist">0 מ׳</div></div>
 </div>
+
+<!-- WALK PAD -->
+<div class="pad" id="pad" style="display:none">
+  <button class="walk-btn" id="btnLeft">◀</button>
+  <button class="walk-btn" id="btnRight">▶</button>
+</div>
+<div class="hint-key" id="hintKey" style="display:none">חיצים ◀ ▶ או הכפתורים כדי ללכת</div>
+
+<!-- START -->
+<div class="overlay active" id="ovStart">
+  <div class="card">
+    <span class="big-emoji">🎁</span>
+    <h1>הרפתקת המתנות</h1>
+    <p class="sub">לך קדימה ואסוף מתנות בדרך.<br>
+      כדי לפתוח כל מתנה — <strong>נחש את המספר</strong>!<br>
+      ככל שתנחש מהר יותר, תקבל יותר ⚡ כוח.</p>
+    <button class="btn btn-go" id="btnStart">התחל הרפתקה 🚀</button>
+    <div class="levels-line">
+      שלב 1: 1–100 &nbsp;•&nbsp; שלב 2: 1–500 &nbsp;•&nbsp; שלב 3: 1–2,000<br>
+      שלב 4: 1–20,000 &nbsp;•&nbsp; שלב 5: 1–100,000
+    </div>
+  </div>
+</div>
+
+<!-- CHALLENGE -->
+<div class="overlay" id="ovChallenge">
+  <div class="card">
+    <span class="big-emoji">🎁</span>
+    <h1>מתנה!</h1>
+    <p class="sub">נחש מספר בין 1 ל-<strong id="chMax"></strong></p>
+    <div class="ch-bar">
+      <span class="hearts" id="chHearts"></span>
+      <span class="ch-timer" id="chTimer">⏱ 0.0</span>
+    </div>
+    <div class="ch-arrow" id="chArrow"></div>
+    <div class="ch-input">
+      <input id="chInput" type="number" inputmode="numeric">
+      <button id="btnGuess">נחש</button>
+    </div>
+    <div class="ch-hist" id="chHist"></div>
+  </div>
+</div>
+
+<!-- LEVEL COMPLETE -->
+<div class="overlay" id="ovLevel">
+  <div class="card">
+    <span class="big-emoji">🏁</span>
+    <h1 class="win">שלב הושלם!</h1>
+    <p class="sub" id="lvStats"></p>
+    <button class="btn btn-go" id="btnNext">לשלב הבא ▶</button>
+  </div>
+</div>
+
+<!-- DISQUALIFIED -->
+<div class="overlay" id="ovOver">
+  <div class="card">
+    <span class="big-emoji">💔</span>
+    <h1 class="lose">נפסלת!</h1>
+    <p class="sub" id="overStats"></p>
+    <button class="btn btn-go" id="btnRetry">נסה שוב את השלב 🔄</button>
+  </div>
+</div>
+
+<!-- VICTORY -->
+<div class="overlay" id="ovWin">
+  <div class="card">
+    <span class="big-emoji">👑</span>
+    <h1 class="win">ניצחת את כל ההרפתקה!</h1>
+    <p class="sub" id="winStats"></p>
+    <button class="btn btn-go" id="btnRestart">שחק שוב 🔄</button>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════
-//  CONFIG
+//  LEVEL CONFIG
 // ══════════════════════════════════════════════════
-const DIFFS = {
-  easy:   {label:'קל',     min:1, max:100,   maxAtt:10},
-  medium: {label:'בינוני', min:1, max:1000,  maxAtt:15},
-  hard:   {label:'קשה',    min:1, max:10000, maxAtt:20},
-};
-const MODES = {
-  normal:{label:'רגיל',   icon:'🎮', timer:true,  limit:true },
-  speed: {label:'מהירות', icon:'⚡', timer:true,  limit:false},
-  zen:   {label:'זן',     icon:'🧘', timer:false, limit:false},
-  daily: {label:'יומי',   icon:'📅', timer:true,  limit:true },
-};
+const LEVELS=[
+  {lv:1, max:100,    attempts:6,  presents:4},
+  {lv:2, max:500,    attempts:9,  presents:4},
+  {lv:3, max:2000,   attempts:11, presents:5},
+  {lv:4, max:20000,  attempts:15, presents:5},
+  {lv:5, max:100000, attempts:18, presents:6},
+];
+const THEMES=[
+  {sky:['#7ec8e3','#d4f1ff'], hillF:'#4caf50', hillB:'#81c784', ground:'#5db85d', soil:'#7a5230'},
+  {sky:['#ff9e6d','#ffd9a0'], hillF:'#c98a3a', hillB:'#e0b25a', ground:'#cba24f', soil:'#8a6a2f'},
+  {sky:['#4f7ce0','#9fc0ff'], hillF:'#2e9e6b', hillB:'#5cbf8f', ground:'#3fa06e', soil:'#2f5a3f'},
+  {sky:['#3a2a6a','#7a4aa0'], hillF:'#5a3a8a', hillB:'#7e57c2', ground:'#6a4a8a', soil:'#3a2a5a'},
+  {sky:['#171738','#3a2a6a'], hillF:'#4a2a7a', hillB:'#6a3aa0', ground:'#5a3a7a', soil:'#24163f'},
+];
+const HERO={body:'#7e57c2', belly:'#ede7f6', cap:'#ffca28'};
+
+const PXPERM=8;           // pixels per "meter"
+const SPACING_M=180;      // meters between presents
+const FIRST_M=140;        // meters to first present
+const SPEED=240;          // walk speed px/s
 
 // ══════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════
-let secret, attLeft, maxAtt, won, over;
-let curDiff, curMode, diff, mode;
-let timerIv, elapsed, timerOn;
-let hintUsed, histArr=[], challengeMode=false;
-let audioCtx=null;
+let state='start';        // start | play | challenge | level | over | win
+let levelIdx=0, L=LEVELS[0], theme=THEMES[0];
+let heroX=0, heroFacing=1, legPhase=0;
+let presents=[], goalX=0, totalPower=0, levelPower=0;
+const keys={left:false, right:false};
+
+// challenge
+let curPresent=null, chSecret=0, chLeft=0, chStart=0, chTimerIv=null, chGuesses=[];
+
+// canvas
+const cv=document.getElementById('game'), cx=cv.getContext('2d');
+let W=0, H=0, heroScreenX=0, groundY=0;
+function resize(){
+  W=cv.width=innerWidth; H=cv.height=innerHeight;
+  heroScreenX=W*0.30; groundY=H*0.80;
+  const cf=document.getElementById('confetti'); cf.width=W; cf.height=H;
+}
+addEventListener('resize',resize); resize();
 
 // ══════════════════════════════════════════════════
 //  AUDIO
 // ══════════════════════════════════════════════════
-function getAudioCtx(){
-  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  return audioCtx;
+let actx=null;
+function AC(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+function tone(freq,dur,vol=.2,type='sine'){
+  try{const c=AC(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);
+    o.start();o.stop(c.currentTime+dur);}catch(e){}
 }
-function playTone(freq,dur,vol=.25,type='sine'){
-  try{
-    const ctx=getAudioCtx(),o=ctx.createOscillator(),g=ctx.createGain();
-    o.connect(g);g.connect(ctx.destination);
-    o.frequency.value=freq;o.type=type;
-    g.gain.setValueAtTime(vol,ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
-    o.start(ctx.currentTime);o.stop(ctx.currentTime+dur);
-  }catch(e){}
-}
-function soundForDist(dist,range){
-  const p=dist/range;
-  const freq=p>.6?160:p>.4?220:p>.25?320:p>.12?440:p>.04?600:800;
-  playTone(freq,.18);
-}
-function soundWin(){
-  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,.3,.3),i*110));
-}
-function soundLose(){
-  [300,250,200].forEach((f,i)=>setTimeout(()=>playTone(f,.25,.25,'sawtooth'),i*120));
-}
+function chord(freqs,dur,vol=.2,type='sine'){freqs.forEach(f=>tone(f,dur,vol,type));}
+function sndStep(){tone(120,.05,.06,'square');}
+function sndOpen(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.28,.22),i*90));}
+function sndHot(){tone(700,.12,.18);}
+function sndNear(d,range){const p=d/range;tone(p>.5?180:p>.3?260:p>.15?360:p>.06?500:660,.14,.16);}
+function sndLevel(){[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>tone(f,.3,.24),i*110));}
+function sndOver(){[330,260,200].forEach((f,i)=>setTimeout(()=>tone(f,.3,.22,'sawtooth'),i*130));}
+function haptic(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
 
 // ══════════════════════════════════════════════════
-//  HAPTIC
+//  WORLD RENDER
 // ══════════════════════════════════════════════════
-function haptic(pattern){try{navigator.vibrate&&navigator.vibrate(pattern)}catch(e){}}
-
-// ══════════════════════════════════════════════════
-//  TEMPERATURE
-// ══════════════════════════════════════════════════
-function setTemp(dist,range){
-  const p=dist/range, c=document.getElementById('card');
-  let bg,border,shadow;
-  if(p>.6) {bg='#0d1a3a';border='#1a4a7a';shadow='rgba(96,165,250,.2)'}
-  else if(p>.35){bg='#1a1a2e';border='#2a2a5a';shadow='rgba(167,139,250,.12)'}
-  else if(p>.18){bg='#2a1505';border='#6a3a10';shadow='rgba(251,191,36,.18)'}
-  else if(p>.06){bg='#3a0a05';border='#8a2a15';shadow='rgba(249,115,22,.25)'}
-  else          {bg='#4a0303';border='#bb1515';shadow='rgba(248,113,113,.35)'}
-  c.style.background=bg;c.style.borderColor=border;
-  c.style.boxShadow=`0 20px 60px rgba(0,0,0,.5),0 0 50px ${shadow}`;
+function drawHills(scroll,factor,color,baseY,amp){
+  cx.fillStyle=color;cx.beginPath();cx.moveTo(0,H);
+  for(let x=0;x<=W;x+=18){
+    const wx=x+scroll*factor;
+    const y=baseY-Math.sin(wx*0.004)*amp-Math.cos(wx*0.011)*amp*0.4;
+    cx.lineTo(x,y);
+  }
+  cx.lineTo(W,H);cx.closePath();cx.fill();
 }
-function resetTemp(){
-  const c=document.getElementById('card');
-  c.style.background='#1a1a2e';c.style.borderColor='#2a2a4a';
-  c.style.boxShadow='0 20px 60px rgba(0,0,0,.5)';
-}
-
-// ══════════════════════════════════════════════════
-//  GAUGE
-// ══════════════════════════════════════════════════
-function showGauge(val){
-  const w=document.getElementById('gaugeWrap');
-  w.style.display='block';
-  const pct=((val-diff.min)/(diff.max-diff.min))*100;
-  document.getElementById('gFill').style.width=pct+'%';
-  document.getElementById('gMark').style.left=pct+'%';
-  document.getElementById('gMin').textContent=diff.min.toLocaleString();
-  document.getElementById('gMax').textContent=diff.max.toLocaleString();
-}
-
-// ══════════════════════════════════════════════════
-//  ARROWS
-// ══════════════════════════════════════════════════
-function sz(dist,range){return Math.round(26+(dist/range)*104)}
-function svgUp(px,col){return`<svg width="${px}" height="${px}" viewBox="0 0 100 100"><polygon points="50,4 96,82 4,82" fill="${col}"/></svg>`}
-function svgDn(px,col){return`<svg width="${px}" height="${px}" viewBox="0 0 100 100"><polygon points="50,96 4,18 96,18" fill="${col}"/></svg>`}
-
-// ══════════════════════════════════════════════════
-//  TIMER
-// ══════════════════════════════════════════════════
-function startTimer(){
-  if(timerOn||!mode.timer)return;
-  timerOn=true;elapsed=0;
-  timerIv=setInterval(()=>{
-    elapsed++;
-    const m=Math.floor(elapsed/60),s=elapsed%60;
-    document.getElementById('timerEl').textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
-  },1000);
-}
-function stopTimer(){clearInterval(timerIv)}
-
-// ══════════════════════════════════════════════════
-//  STATS (localStorage)
-// ══════════════════════════════════════════════════
-function getStats(dk){
-  const k='gstats_'+dk;
-  const v=localStorage.getItem(k);
-  if(v) return JSON.parse(v);
-  return{played:0,won:0,streak:0,bestStreak:0,dist:{},bestAtt:null,bestSec:null};
-}
-function saveStats(dk,s){localStorage.setItem('gstats_'+dk,JSON.stringify(s))}
-function recordWin(dk,att,sec){
-  const s=getStats(dk);
-  s.played++;s.won++;s.streak++;
-  if(s.streak>s.bestStreak)s.bestStreak=s.streak;
-  s.dist[att]=(s.dist[att]||0)+1;
-  if(s.bestAtt===null||att<s.bestAtt||(att===s.bestAtt&&sec<s.bestSec)){s.bestAtt=att;s.bestSec=sec}
-  saveStats(dk,s);
-  return s;
-}
-function recordLoss(dk){
-  const s=getStats(dk);
-  s.played++;s.streak=0;
-  saveStats(dk,s);
-}
-
-function statsKey(){return curDiff+(curMode==='daily'?'_daily':'')}
-
-function showBest(){
-  const s=getStats(statsKey());
-  const el=document.getElementById('bestEl');
-  el.textContent=s.bestAtt!==null?`🏆 שיא: ${s.bestAtt} ניסיונות`:'';
-}
-
-// ══════════════════════════════════════════════════
-//  ATT DISPLAY
-// ══════════════════════════════════════════════════
-function showAtt(){
-  const el=document.getElementById('attEl');
-  if(!mode.limit){el.textContent='∞ ניסיונות';el.className='att none';return}
-  el.textContent=`${attLeft} ניסיונות נותרו`;
-  el.className='att '+(attLeft>7?'ok':attLeft>3?'warn':'bad');
-}
-
-// ══════════════════════════════════════════════════
-//  HISTORY
-// ══════════════════════════════════════════════════
-function addHist(val,dir,dist){
-  histArr.push(val);
-  const c=document.getElementById('history');
-  const d=document.createElement('div');d.className='hi';
-  let arrow,cls;
-  if(dir==='win')     {arrow='✓';  cls='win'}
-  else if(dist<=10)   {arrow=dir==='up'?'↑🔥':'↓🔥';cls='hot'}
-  else if(dir==='up') {arrow='↑';  cls='up'}
-  else                {arrow='↓';  cls='down'}
-  d.innerHTML=`<span style="color:#374151">×${histArr.length}</span>
-    <span class="hn">${val.toLocaleString()}</span>
-    <span class="ha ${cls}">${arrow}</span>`;
-  c.prepend(d);
-}
-
-// ══════════════════════════════════════════════════
-//  HINT
-// ══════════════════════════════════════════════════
-function useHint(){
-  if(hintUsed)return;
-  hintUsed=true;document.getElementById('hintBtn').disabled=true;
-  const opts=[
-    `המספר ${secret%2===0?'זוגי':'אי-זוגי'}`,
-    `המספר ${secret%5===0?'':'לא '}מתחלק ב-5`,
-  ];
-  const band=Math.round((diff.max-diff.min)*.18);
-  const lo=Math.max(diff.min,secret-band),hi=Math.min(diff.max,secret+band);
-  opts.push(`המספר בין ${lo.toLocaleString()} ל-${hi.toLocaleString()}`);
-  document.getElementById('hintDisp').textContent='💡 '+opts[Math.floor(Math.random()*opts.length)];
-}
-
-// ══════════════════════════════════════════════════
-//  QUICK BUTTONS
-// ══════════════════════════════════════════════════
-function buildQuickBtns(){
-  const row=document.getElementById('quickRow');
-  row.innerHTML='';
-  const steps=diff.max<=100?[-10,-1,1,10]:diff.max<=1000?[-100,-10,-1,1,10,100]:[-1000,-100,-10,1,10,100,1000];
-  steps.forEach(n=>{
-    const b=document.createElement('button');
-    b.className='qbtn';
-    b.textContent=(n>0?'+':'')+n.toLocaleString();
-    b.onclick=()=>nudge(n);
-    row.appendChild(b);
+function drawCloud(x,y,s){
+  cx.fillStyle='rgba(255,255,255,.85)';
+  [[0,0,1],[s*0.7,s*0.1,0.8],[-s*0.7,s*0.1,0.8],[s*0.3,-s*0.25,0.7]].forEach(([dx,dy,r])=>{
+    cx.beginPath();cx.arc(x+dx,y+dy,s*r,0,7);cx.fill();
   });
 }
-function nudge(n){
-  const inp=document.getElementById('guessInput');
-  const cur=parseInt(inp.value)||Math.round((diff.min+diff.max)/2);
-  inp.value=Math.min(diff.max,Math.max(diff.min,cur+n));
+function drawHero(x,phase,facing){
+  cx.save();
+  const bob=Math.abs(Math.sin(phase))*5;
+  cx.translate(x,groundY-bob);
+  if(facing<0)cx.scale(-1,1);
+  const top=-66;
+  // legs
+  const sw=Math.sin(phase)*8;
+  cx.fillStyle='#2b2b40';
+  cx.beginPath();cx.roundRect(-13+sw,-22,11,24,5);cx.fill();
+  cx.beginPath();cx.roundRect(2-sw,-22,11,24,5);cx.fill();
+  // arms
+  const asw=Math.sin(phase+Math.PI)*7;
+  cx.fillStyle=HERO.body;
+  cx.beginPath();cx.roundRect(-27,top+12+asw*0.3,9,22,5);cx.fill();
+  cx.beginPath();cx.roundRect(18,top+12-asw*0.3,9,22,5);cx.fill();
+  // body
+  cx.fillStyle=HERO.body;cx.beginPath();cx.roundRect(-22,top,44,48,16);cx.fill();
+  cx.fillStyle=HERO.belly;cx.beginPath();cx.roundRect(-13,top+20,26,22,11);cx.fill();
+  // eyes
+  cx.fillStyle='#fff';
+  cx.beginPath();cx.arc(-7,top+14,7,0,7);cx.arc(9,top+14,7,0,7);cx.fill();
+  cx.fillStyle='#1a1a1a';
+  cx.beginPath();cx.arc(-5,top+15,3,0,7);cx.arc(11,top+15,3,0,7);cx.fill();
+  // cap
+  cx.fillStyle=HERO.cap;
+  cx.beginPath();cx.arc(0,top+1,24,Math.PI,2*Math.PI);cx.closePath();cx.fill();
+  cx.beginPath();cx.roundRect(0,top-4,32,7,3);cx.fill();
+  cx.restore();
+}
+function render(){
+  const scroll=heroX-heroScreenX;
+  // sky
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,theme.sky[0]);g.addColorStop(1,theme.sky[1]);
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // sun
+  cx.fillStyle='rgba(255,245,200,.9)';cx.beginPath();cx.arc(W*0.82,H*0.2,42,0,7);cx.fill();
+  // clouds (parallax)
+  for(let i=0;i<4;i++){
+    const cwx=i*620+200, sx=((cwx-scroll*0.25)%(W+700)+(W+700))%(W+700)-200;
+    drawCloud(sx,H*0.16+i*34,26);
+  }
+  // hills
+  drawHills(scroll,0.4,theme.hillB,groundY+30,90);
+  drawHills(scroll,0.7,theme.hillF,groundY+50,60);
+  // ground
+  cx.fillStyle=theme.ground;cx.fillRect(0,groundY,W,H-groundY);
+  cx.fillStyle=theme.soil;cx.fillRect(0,groundY+18,W,H-groundY-18);
+  // ground stripes
+  cx.fillStyle='rgba(0,0,0,.08)';
+  for(let x=-(scroll%80);x<W;x+=80){cx.fillRect(x,groundY+18,40,H);}
+  // presents
+  cx.textAlign='center';cx.textBaseline='alphabetic';
+  presents.forEach(p=>{
+    if(p.collected)return;
+    const sx=p.worldX-scroll;
+    if(sx<-60||sx>W+60)return;
+    const fl=Math.sin(performance.now()/300+p.worldX)*4;
+    cx.font='46px serif';cx.fillText('🎁',sx,groundY-2+fl);
+  });
+  // goal flag
+  const gx=goalX-scroll;
+  if(gx>-60&&gx<W+60){cx.font='52px serif';cx.fillText('🚩',gx,groundY+2);}
+  // hero
+  drawHero(heroScreenX,legPhase,heroFacing);
+}
+
+// ══════════════════════════════════════════════════
+//  GAME LOOP
+// ══════════════════════════════════════════════════
+let last=performance.now(), stepAcc=0;
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(state==='play')update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+function update(dt){
+  let vx=0;
+  if(keys.right)vx+=SPEED;
+  if(keys.left)vx-=SPEED;
+  if(vx!==0){
+    heroX+=vx*dt;if(heroX<0)heroX=0;
+    heroFacing=vx>0?1:-1;
+    legPhase+=dt*14;
+    stepAcc+=Math.abs(vx*dt);
+    if(stepAcc>70){stepAcc=0;sndStep();}
+  }
+  // block at next uncollected present
+  const np=presents.find(p=>!p.collected);
+  if(np){
+    if(heroX>=np.worldX){heroX=np.worldX;openChallenge(np);}
+  }else if(heroX>=goalX){
+    heroX=goalX;levelComplete();
+  }
+  document.getElementById('hudDist').textContent=Math.floor(heroX/PXPERM).toLocaleString()+' מ׳';
+}
+
+// ══════════════════════════════════════════════════
+//  FLOW
+// ══════════════════════════════════════════════════
+function show(id){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('active'));
+  if(id)document.getElementById(id).classList.add('active');}
+function setHud(){
+  document.getElementById('hudLevel').textContent='שלב '+L.lv;
+  document.getElementById('hudPower').textContent='⚡ '+totalPower.toLocaleString();
+  const got=presents.filter(p=>p.collected).length;
+  document.getElementById('hudGifts').textContent=`🎁 ${got}/${L.presents}`;
+}
+function startLevel(idx){
+  levelIdx=idx;L=LEVELS[idx];theme=THEMES[idx];
+  heroX=0;heroFacing=1;legPhase=0;levelPower=0;
+  presents=[];
+  for(let i=0;i<L.presents;i++)presents.push({worldX:(FIRST_M+i*SPACING_M)*PXPERM,collected:false});
+  goalX=(FIRST_M+L.presents*SPACING_M)*PXPERM;
+  setHud();show(null);
+  document.getElementById('pad').style.display='flex';
+  const hk=document.getElementById('hintKey');hk.style.display='block';
+  setTimeout(()=>hk.style.display='none',3500);
+  state='play';
+}
+function levelComplete(){
+  state='level';
+  document.getElementById('pad').style.display='none';
+  document.getElementById('lvStats').innerHTML=
+    `אספת את כל המתנות! 🎁<br>צברת <strong>⚡ ${levelPower.toLocaleString()}</strong> כוח בשלב הזה<br>
+     סה״כ כוח: <strong>⚡ ${totalPower.toLocaleString()}</strong>`;
+  confetti();sndLevel();
+  document.getElementById('btnNext').textContent=
+    levelIdx+1<LEVELS.length?'לשלב הבא ▶':'סיים את ההרפתקה 👑';
+  show('ovLevel');
+}
+function nextLevel(){
+  if(levelIdx+1<LEVELS.length)startLevel(levelIdx+1);
+  else victory();
+}
+function victory(){
+  state='win';
+  document.getElementById('winStats').innerHTML=
+    `עברת את כל 5 השלבים!<br>כוח סופי: <strong>⚡ ${totalPower.toLocaleString()}</strong>`;
+  confetti();sndLevel();show('ovWin');
+}
+function disqualify(){
+  state='over';
+  document.getElementById('pad').style.display='none';
+  stopChTimer();
+  document.getElementById('overStats').innerHTML=
+    `נגמרו הניסיונות והמספר היה <strong>${chSecret.toLocaleString()}</strong>.<br>
+     צריך להתחיל את <strong>שלב ${L.lv}</strong> מההתחלה.`;
+  sndOver();haptic([200,100,200]);show('ovOver');
+}
+
+// ══════════════════════════════════════════════════
+//  CHALLENGE
+// ══════════════════════════════════════════════════
+function openChallenge(p){
+  state='challenge';curPresent=p;
+  chSecret=Math.floor(Math.random()*L.max)+1;
+  chLeft=L.attempts;chGuesses=[];chStart=performance.now();
+  document.getElementById('chMax').textContent=L.max.toLocaleString();
+  document.getElementById('chArrow').innerHTML=
+    '<div class="ch-htxt">הקלד ניחוש ולחץ נחש</div>';
+  document.getElementById('chHist').innerHTML='';
+  document.getElementById('chInput').value='';
+  renderHearts();
+  startChTimer();
+  show('ovChallenge');
+  setTimeout(()=>document.getElementById('chInput').focus(),50);
+}
+function renderHearts(){
+  let h='';for(let i=0;i<L.attempts;i++)h+=i<chLeft?'❤️':'🖤';
+  document.getElementById('chHearts').textContent=h;
+}
+function startChTimer(){
+  stopChTimer();
+  chTimerIv=setInterval(()=>{
+    const s=(performance.now()-chStart)/1000;
+    document.getElementById('chTimer').textContent='⏱ '+s.toFixed(1);
+  },100);
+}
+function stopChTimer(){if(chTimerIv){clearInterval(chTimerIv);chTimerIv=null;}}
+
+function submitGuess(){
+  if(state!=='challenge')return;
+  const inp=document.getElementById('chInput');
+  const val=parseInt(inp.value,10);
+  if(!val||val<1||val>L.max){
+    inp.style.borderColor='#ff5252';setTimeout(()=>inp.style.borderColor='',400);
+    haptic(60);return;
+  }
+  chLeft--;chGuesses.push(val);renderHearts();
+  const range=L.max-1, delta=chSecret-val, dist=Math.abs(delta);
+  const arrow=document.getElementById('chArrow'), hist=document.getElementById('chHist');
+  sndNear(dist,range);
+
+  if(delta===0){
+    stopChTimer();
+    const secs=(performance.now()-chStart)/1000;
+    const used=L.attempts-chLeft;
+    const timeF=Math.max(.25,1-secs/30);
+    const guessF=Math.max(.3,1-(used-1)/L.attempts);
+    const lvMult=1+(L.lv-1)*0.5;
+    const gain=Math.round(120*timeF*guessF*lvMult);
+    totalPower+=gain;levelPower+=gain;
+    curPresent.collected=true;
+    setHud();sndOpen();haptic([80,40,120]);confetti();
+    arrow.innerHTML=`<div class="ar">🎉</div>
+      <div class="ch-msg hot">פתחת את המתנה!</div>
+      <div class="pwgain">+${gain} ⚡ כוח &nbsp;(${secs.toFixed(1)} שנ׳)</div>`;
+    setTimeout(()=>{show(null);state='play';
+      document.getElementById('chInput').blur();},1100);
+    return;
+  }
+
+  // feedback
+  let cls,msg,htxt,chip;
+  if(dist<=Math.max(2,range*0.02)){cls='hot';msg=delta>0?'🔥 חם! עלה קצת ↑':'🔥 חם! רד קצת ↓';htxt='אתה ממש קרוב!';chip='hot';sndHot();}
+  else if(delta>0){cls='up';msg='גבוה יותר ↑';htxt=dist>range*0.4?'הרבה יותר גבוה':'קצת יותר גבוה';chip='up';}
+  else {cls='down';msg='נמוך יותר ↓';htxt=dist>range*0.4?'הרבה יותר נמוך':'קצת יותר נמוך';chip='down';}
+  arrow.innerHTML=`<div class="ar">${cls==='hot'?'🔥':delta>0?'⬆️':'⬇️'}</div>
+    <div class="ch-msg ${cls}">${msg}</div><div class="ch-htxt">${htxt}</div>`;
+  const c=document.createElement('span');c.className='ch-chip '+chip;
+  c.textContent=val.toLocaleString()+(chip==='up'?' ↑':chip==='down'?' ↓':' 🔥');
+  hist.prepend(c);
+
+  inp.value='';inp.focus();
+  if(chLeft<=0)disqualify();
 }
 
 // ══════════════════════════════════════════════════
 //  CONFETTI
 // ══════════════════════════════════════════════════
 function confetti(){
-  const cv=document.getElementById('confettiCanvas'),cx=cv.getContext('2d');
-  cv.width=innerWidth;cv.height=innerHeight;
-  const COLS=['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#fb7185'];
-  const ps=Array.from({length:160},()=>({
-    x:Math.random()*cv.width,y:-20,r:Math.random()*7+4,
-    dx:(Math.random()-.5)*4,dy:Math.random()*4+2.5,
-    col:COLS[Math.floor(Math.random()*COLS.length)],
-    ang:Math.random()*360,spin:(Math.random()-.5)*6,op:1
-  }));
+  const cf=document.getElementById('confetti'),ctx=cf.getContext('2d');
+  cf.width=W;cf.height=H;
+  const COLS=['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#fb7185','#ffd54f'];
+  const ps=Array.from({length:150},()=>({x:Math.random()*W,y:-20,r:Math.random()*7+4,
+    dx:(Math.random()-.5)*4,dy:Math.random()*4+2.5,col:COLS[Math.floor(Math.random()*COLS.length)],
+    ang:Math.random()*360,spin:(Math.random()-.5)*6}));
   let raf;
   function draw(){
-    cx.clearRect(0,0,cv.width,cv.height);let alive=false;
-    ps.forEach(p=>{if(p.y<cv.height+20){alive=true;
-      p.x+=p.dx;p.y+=p.dy;p.ang+=p.spin;p.op=Math.max(0,1-p.y/cv.height);
-      cx.save();cx.globalAlpha=p.op;cx.translate(p.x,p.y);
-      cx.rotate(p.ang*Math.PI/180);cx.fillStyle=p.col;
-      cx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);cx.restore()}});
-    if(alive)raf=requestAnimationFrame(draw);
-    else cx.clearRect(0,0,cv.width,cv.height);
+    ctx.clearRect(0,0,W,H);let alive=false;
+    ps.forEach(p=>{if(p.y<H+20){alive=true;p.x+=p.dx;p.y+=p.dy;p.ang+=p.spin;
+      ctx.save();ctx.globalAlpha=Math.max(0,1-p.y/H);ctx.translate(p.x,p.y);
+      ctx.rotate(p.ang*Math.PI/180);ctx.fillStyle=p.col;
+      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);ctx.restore();}});
+    if(alive)raf=requestAnimationFrame(draw);else ctx.clearRect(0,0,W,H);
   }
-  draw();setTimeout(()=>{cancelAnimationFrame(raf);cx.clearRect(0,0,cv.width,cv.height)},5000);
+  draw();setTimeout(()=>{cancelAnimationFrame(raf);ctx.clearRect(0,0,W,H)},4500);
 }
 
 // ══════════════════════════════════════════════════
-//  WIN PARTICLE BURST
+//  INPUT
 // ══════════════════════════════════════════════════
-function burst(){
-  const cv=document.getElementById('burstCanvas'),cx=cv.getContext('2d');
-  cv.width=innerWidth;cv.height=innerHeight;
-  const r=document.getElementById('card').getBoundingClientRect();
-  const ox=r.left+r.width/2, oy=r.top+r.height/2;
-  const COLS=['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#fb7185','#fff'];
-  const ps=Array.from({length:70},()=>{
-    const a=Math.random()*Math.PI*2,sp=Math.random()*10+3;
-    return{x:ox,y:oy,dx:Math.cos(a)*sp,dy:Math.sin(a)*sp,
-      rad:Math.random()*4+2,col:COLS[Math.floor(Math.random()*COLS.length)],op:1};
-  });
-  let raf;
-  function draw(){
-    cx.clearRect(0,0,cv.width,cv.height);let alive=false;
-    ps.forEach(p=>{if(p.op>.02){alive=true;
-      p.x+=p.dx;p.y+=p.dy;p.dy+=.18;p.dx*=.95;p.dy*=.95;p.op*=.93;
-      cx.save();cx.globalAlpha=p.op;cx.fillStyle=p.col;
-      cx.beginPath();cx.arc(p.x,p.y,p.rad,0,7);cx.fill();cx.restore();}});
-    if(alive)raf=requestAnimationFrame(draw);
-    else cx.clearRect(0,0,cv.width,cv.height);
-  }
-  draw();setTimeout(()=>{cancelAnimationFrame(raf);cx.clearRect(0,0,cv.width,cv.height)},2500);
+addEventListener('keydown',e=>{
+  if(state==='challenge'){if(e.key==='Enter')submitGuess();return;}
+  if(state!=='play')return;
+  if(e.key==='ArrowRight'||e.key==='d')keys.right=true;
+  if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;
+});
+addEventListener('keyup',e=>{
+  if(e.key==='ArrowRight'||e.key==='d')keys.right=false;
+  if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;
+});
+function bindHold(id,dir){
+  const el=document.getElementById(id);
+  const on=e=>{e.preventDefault();keys[dir]=true;AC();};
+  const off=e=>{e.preventDefault();keys[dir]=false;};
+  el.addEventListener('pointerdown',on);
+  el.addEventListener('pointerup',off);
+  el.addEventListener('pointerleave',off);
+  el.addEventListener('pointercancel',off);
 }
+bindHold('btnLeft','left');bindHold('btnRight','right');
 
-// ══════════════════════════════════════════════════
-//  CARD SCREEN-SHAKE
-// ══════════════════════════════════════════════════
-function shakeCard(intensity){
-  const c=document.getElementById('card'),start=performance.now(),dur=260;
-  (function f(t){
-    const e=(t-start)/dur;
-    if(e>=1){c.style.transform='';return;}
-    c.style.transform=`translateX(${Math.sin(e*38)*intensity*(1-e)}px)`;
-    requestAnimationFrame(f);
-  })(start);
-}
+document.getElementById('btnGuess').addEventListener('click',submitGuess);
+document.getElementById('btnStart').addEventListener('click',()=>{AC();totalPower=0;startLevel(0);});
+document.getElementById('btnNext').addEventListener('click',nextLevel);
+document.getElementById('btnRetry').addEventListener('click',()=>startLevel(levelIdx));
+document.getElementById('btnRestart').addEventListener('click',()=>{totalPower=0;startLevel(0);});
 
-// ══════════════════════════════════════════════════
-//  PROGRESSION — XP / COINS / RANK / ACHIEVEMENTS
-// ══════════════════════════════════════════════════
-const RANKS=[
-  {min:1, name:'מתחיל',     icon:'🌱'},
-  {min:3, name:'בלש',        icon:'🔍'},
-  {min:5, name:'פצחן',       icon:'🧩'},
-  {min:8, name:'אורקל',      icon:'🔮'},
-  {min:12,name:'מאסטרמיינד', icon:'🧠'},
-  {min:16,name:'גרנדמאסטר',  icon:'👑'},
-];
-const ACHIEVEMENTS=[
-  {id:'first',   icon:'🩸', name:'דם ראשון',          desc:'הניצחון הראשון שלך'},
-  {id:'sniper',  icon:'🎯', name:'צלף',                desc:'נצח ב-3 ניחושים או פחות'},
-  {id:'bullseye',icon:'💥', name:'בול בפעם הראשונה',   desc:'נצח בניחוש אחד'},
-  {id:'purist',  icon:'🧘', name:'טהרן',               desc:'נצח בקושי קשה בלי רמזים'},
-  {id:'hot5',    icon:'🔥', name:'רצף לוהט',           desc:'5 ניצחונות ברצף'},
-  {id:'marathon',icon:'🏃', name:'מרתוניסט',           desc:'50 ניצחונות בסך הכל'},
-];
-function levelInfo(xp){
-  let lvl=1,need=100,acc=0;
-  while(xp>=acc+need){acc+=need;lvl++;need=lvl*100;}
-  const into=xp-acc;
-  return{level:lvl,into,need,pct:Math.round(into/need*100)};
-}
-function rankFor(level){let r=RANKS[0];for(const x of RANKS)if(level>=x.min)r=x;return r;}
-function getProfile(){
-  const v=localStorage.getItem('gprofile');
-  if(v)return JSON.parse(v);
-  return{xp:0,coins:0,wins:0,winStreak:0,ach:[]};
-}
-function saveProfile(p){localStorage.setItem('gprofile',JSON.stringify(p))}
-
-function renderProfileBar(){
-  const p=getProfile(),li=levelInfo(p.xp),rk=rankFor(li.level);
-  document.getElementById('profileBar').innerHTML=`
-    <span class="pb-rank">${rk.icon}</span>
-    <div class="pb-mid">
-      <div class="pb-name">${rk.name} <span class="lvl">· רמה ${li.level}</span></div>
-      <div class="pb-xptrack"><div class="pb-xpfill" style="width:${li.pct}%"></div></div>
-    </div>
-    <span class="pb-coins">🪙 ${p.coins.toLocaleString()}</span>`;
-}
-
-function awardProgress(used){
-  const p=getProfile();
-  const base={easy:20,medium:40,hard:80}[curDiff]||30;
-  const eff=mode.limit?Math.round(base*(attLeft/maxAtt))
-                      :Math.max(0,Math.round(base*(1-Math.min(1,used/15))));
-  const noHint=hintUsed?0:Math.round(base*.25);
-  const xpGain=base+eff+noHint;
-  const before=levelInfo(p.xp).level;
-  p.xp+=xpGain;
-  const after=levelInfo(p.xp).level;
-  const coinGain=10+(used<=3?15:0)+(hintUsed?0:5);
-  p.coins+=coinGain;
-  p.wins++;p.winStreak++;
-  const newAch=[];
-  const unlock=id=>{if(!p.ach.includes(id)){p.ach.push(id);newAch.push(ACHIEVEMENTS.find(a=>a.id===id));}};
-  unlock('first');
-  if(used<=3)unlock('sniper');
-  if(used===1)unlock('bullseye');
-  if(curDiff==='hard'&&!hintUsed)unlock('purist');
-  if(p.winStreak>=5)unlock('hot5');
-  if(p.wins>=50)unlock('marathon');
-  saveProfile(p);
-  return{xpGain,coinGain,newAch,leveledUp:after>before,level:after};
-}
-function resetWinStreak(){const p=getProfile();p.winStreak=0;saveProfile(p);}
-
-function showToast(ach){
-  const wrap=document.getElementById('toasts');
-  const t=document.createElement('div');t.className='toast';
-  t.innerHTML=`<span class="ti">${ach.icon}</span>
-    <div><div class="tlbl">🏆 הישג חדש!</div>
-    <div class="tname">${ach.name}</div>
-    <div class="tdesc">${ach.desc}</div></div>`;
-  wrap.appendChild(t);
-  playTone(880,.12,.2);setTimeout(()=>playTone(1175,.18,.2),90);
-  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),400)},4200);
-}
-
-// ══════════════════════════════════════════════════
-//  SHARE / CHALLENGE
-// ══════════════════════════════════════════════════
-function buildShareText(att,sec){
-  const modeLabel=MODES[curMode].label;
-  const diffLabel=DIFFS[curDiff]?DIFFS[curDiff].label:'';
-  const m=Math.floor(sec/60),s=String(sec%60).padStart(2,'0');
-  const used=maxAtt?`${att}/${maxAtt}`:`${att}`;
-  const boxes=(mode.limit?Array.from({length:maxAtt},(_, i)=>i<att?'🟪':'⬜'):Array(att).fill('🟪')).join('');
-  return`🎯 נחש את המספר\n${modeLabel} ${diffLabel} | ${used} ניסיונות${mode.timer?` | ${m}:${s}`:''}\n${boxes}`;
-}
-function copyShare(){
-  navigator.clipboard.writeText(document.getElementById('shareCard').textContent.trim()).then(()=>flashCopy('✓ הועתק!'));
-}
-function copyChallenge(){
-  const url=`${location.href.split('?')[0]}?c=${secret}_${curDiff}_${curMode}`;
-  navigator.clipboard.writeText(url).then(()=>flashCopy('✓ קישור אתגר הועתק!'));
-}
-function flashCopy(msg){
-  const el=document.getElementById('copyOk');
-  el.textContent=msg;setTimeout(()=>el.textContent='',3000);
-}
-
-// ══════════════════════════════════════════════════
-//  SCREENS
-// ══════════════════════════════════════════════════
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
-
-// ══════════════════════════════════════════════════
-//  DAILY NUMBER (date-seeded)
-// ══════════════════════════════════════════════════
-function dailyNumber(min,max){
-  const d=new Date(),seed=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
-  let h=seed^(seed>>>16);h=Math.imul(h,0x45d9f3b);h^=h>>>16;
-  return(Math.abs(h)%(max-min+1))+min;
-}
-
-// ══════════════════════════════════════════════════
-//  FLOW
-// ══════════════════════════════════════════════════
-function pickMode(m){
-  curMode=m;
-  if(m==='zen'){document.getElementById('diffModeLine').textContent='מצב זן — ללא טיימר, ללא הגבלה'}
-  else if(m==='speed'){document.getElementById('diffModeLine').textContent='מצב מהירות — ניסיונות חופשיים'}
-  else{document.getElementById('diffModeLine').textContent=''}
-  show('sDiff');
-}
-
-function startDaily(){
-  curMode='daily';curDiff='medium';
-  startGame('medium','daily',dailyNumber(1,1000));
-}
-
-function startGame(dk,modeKey,forced){
-  curDiff=dk||curDiff;
-  curMode=modeKey||curMode||'normal';
-  diff=DIFFS[curDiff];mode=MODES[curMode];
-  secret=forced??(Math.floor(Math.random()*(diff.max-diff.min+1))+diff.min);
-  maxAtt=mode.limit?diff.maxAtt:Infinity;
-  attLeft=mode.limit?diff.maxAtt:Infinity;
-  won=over=hintUsed=timerOn=false;histArr=[];elapsed=0;
-
-  // reset UI
-  ['arrowZone','history'].forEach(id=>document.getElementById(id).innerHTML='');
-  ['hintDisp'].forEach(id=>document.getElementById(id).textContent='');
-  document.getElementById('hintBtn').disabled=false;
-  document.getElementById('guessBtn').disabled=false;
-  document.getElementById('guessInput').disabled=false;
-  document.getElementById('guessInput').min=diff.min;
-  document.getElementById('guessInput').max=diff.max;
-  document.getElementById('guessInput').placeholder=`${diff.min.toLocaleString()}–${diff.max.toLocaleString()}`;
-  document.getElementById('guessInput').value='';
-  document.getElementById('timerEl').textContent=mode.timer?'⏱ 0:00':'';
-  document.getElementById('gaugeWrap').style.display='none';
-  document.getElementById('cbadge').style.display=challengeMode?'block':'none';
-
-  // mode badge
-  const bw=document.getElementById('modeBadgeWrap');
-  if(curMode!=='normal'){
-    bw.innerHTML=`<span class="mode-badge ${curMode}">${MODES[curMode].icon} ${MODES[curMode].label}</span>`;
-  } else bw.innerHTML='';
-
-  buildQuickBtns();
-  resetTemp();showAtt();showBest();
-  show('sGame');
-  document.getElementById('guessInput').focus();
-}
-
-// ══════════════════════════════════════════════════
-//  MAIN GUESS
-// ══════════════════════════════════════════════════
-function makeGuess(){
-  if(won||over)return;
-  const inp=document.getElementById('guessInput');
-  const val=parseInt(inp.value,10);
-  if(!val||val<diff.min||val>diff.max){
-    inp.classList.add('shake');
-    setTimeout(()=>inp.classList.remove('shake'),400);
-    haptic(80);return;
-  }
-
-  startTimer();
-  if(mode.limit)attLeft--;
-  showAtt();
-
-  const delta=secret-val,dist=Math.abs(delta),range=diff.max-diff.min;
-  const zone=document.getElementById('arrowZone');
-  setTemp(dist,range);
-  showGauge(val);
-  soundForDist(dist,range);
-
-  if(delta===0){
-    won=true;stopTimer();
-    addHist(val,'win',0);
-    zone.innerHTML=`<div class="arrow wa"><div style="font-size:2rem">🎉</div>
-      <div class="msg" style="color:#34d399;font-size:1.2rem">ניחשת!</div></div>`;
-    confetti();burst();soundWin();haptic([100,50,200]);
-
-    const used=mode.limit?maxAtt-attLeft:histArr.length;
-    const st=recordWin(statsKey(),used,elapsed);
-    const aw=awardProgress(used);
-    document.getElementById('winRewards').innerHTML=
-      `<span class="reward-chip xp">+${aw.xpGain} XP</span>
-       <span class="reward-chip coin">+${aw.coinGain} 🪙</span>`;
-    const luEl=document.getElementById('levelUp');
-    if(aw.leveledUp){luEl.style.display='block';
-      luEl.textContent=`⬆️ עלית לרמה ${aw.level}! (${rankFor(aw.level).icon} ${rankFor(aw.level).name})`;}
-    else luEl.style.display='none';
-    aw.newAch.forEach((a,i)=>setTimeout(()=>showToast(a),1100+i*600));
-    const isNew=st.bestAtt===used&&st.bestSec===elapsed&&st.won===1||
-                (st.bestAtt===used&&st.bestSec===elapsed&&st.won<=3);
-
-    const m=Math.floor(elapsed/60),s=String(elapsed%60).padStart(2,'0');
-    document.getElementById('winStats').innerHTML=
-      `המספר היה <strong>${secret.toLocaleString()}</strong><br>
-       ניחשת ב-<strong>${used}</strong> ניסיונות${mode.timer?`<br>זמן: <strong>${m}:${s}</strong>`:''}`;
-    document.getElementById('newBest').textContent=st.won===1||used===st.bestAtt?'🏆 שיא אישי חדש!':'';
-    const shareText=buildShareText(used,elapsed);
-    document.getElementById('shareCard').textContent=shareText;
-    setTimeout(()=>show('sWin'),900);
-
-  } else if(dist<=10){
-    const col='#fbbf24';
-    zone.innerHTML=`<div class="arrow hot">
-      ${delta>0?svgUp(sz(dist,range),col):svgDn(sz(dist,range),col)}
-      <div class="msg hot">${delta>0?'🔥 עלה קצת ↑':'🔥 רד קצת ↓'}</div>
-      <div class="htxt">אתה בוער! מרחק ${dist}</div></div>`;
-    addHist(val,delta>0?'up':'down',dist);
-
-  } else if(delta>0){
-    const far=dist>range*.5;
-    zone.innerHTML=`<div class="arrow up">
-      ${svgUp(sz(dist,range),'#60a5fa')}
-      <div class="msg higher">גבוה יותר ↑</div>
-      <div class="htxt">${far?'הרבה יותר גבוה!':dist<=80?'קרוב! המשך':'קצת יותר גבוה'}</div></div>`;
-    addHist(val,'up',dist);
-
-  } else {
-    const far=dist>range*.5;
-    zone.innerHTML=`<div class="arrow down">
-      ${svgDn(sz(dist,range),'#f97316')}
-      <div class="msg lower">נמוך יותר ↓</div>
-      <div class="htxt">${far?'הרבה יותר נמוך!':dist<=80?'קרוב! המשך':'קצת יותר נמוך'}</div></div>`;
-    addHist(val,'down',dist);
-  }
-
-  if(!won)shakeCard(dist<=10?5:8);
-
-  if(!won&&mode.limit&&attLeft<=0){
-    over=true;stopTimer();
-    recordLoss(statsKey());resetWinStreak();
-    soundLose();haptic([200,100,200]);shakeCard(15);
-    document.getElementById('guessBtn').disabled=true;
-    document.getElementById('guessInput').disabled=true;
-    document.getElementById('overStats').innerHTML=
-      `המספר היה <strong>${secret.toLocaleString()}</strong><br>
-       ניסית <strong>${maxAtt}</strong> פעמים<br>
-       <span style="color:#6b7280">בפעם הבאה תצליח!</span>`;
-    setTimeout(()=>show('sOver'),1300);
-  }
-  inp.value='';inp.focus();
-}
-
-// ══════════════════════════════════════════════════
-//  STATS SCREEN
-// ══════════════════════════════════════════════════
-function showStats(){
-  const tabs=['easy','medium','hard'];
-  let activeTab=tabs[0];
-
-  function renderTabs(){
-    document.getElementById('statsTabs').innerHTML=tabs.map(dk=>
-      `<button class="diff-tab${dk===activeTab?' active':''}" onclick="switchStatsTab('${dk}')">${DIFFS[dk].label}</button>`
-    ).join('');
-  }
-
-  window.switchStatsTab=function(dk){activeTab=dk;renderTabs();renderBody()};
-
-  function renderBody(){
-    const s=getStats(activeTab);
-    const winRate=s.played?Math.round(s.won/s.played*100):0;
-    const avgAtt=s.won?(Object.entries(s.dist).reduce((a,[k,v])=>a+Number(k)*v,0)/s.won).toFixed(1):'—';
-    const maxDist=Math.max(...Object.values(s.dist),1);
-    const maxAttForDiff=DIFFS[activeTab].maxAtt;
-
-    let distRows='';
-    for(let i=1;i<=maxAttForDiff;i++){
-      const cnt=s.dist[i]||0;
-      const pct=Math.round((cnt/maxDist)*100);
-      distRows+=`<div class="dist-bar-row">
-        <span class="dbl">${i}</span>
-        <div class="dist-track"><div class="dist-fill" style="width:${pct}%"></div></div>
-        <span class="dist-count">${cnt}</span>
-      </div>`;
-    }
-
-    document.getElementById('statsBody').innerHTML=`
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-num">${s.played}</div><div class="stat-lbl">משחקים</div></div>
-        <div class="stat-card"><div class="stat-num">${winRate}%</div><div class="stat-lbl">אחוז ניצחון</div></div>
-        <div class="stat-card"><div class="stat-num">${s.streak}</div><div class="stat-lbl">רצף נוכחי</div></div>
-        <div class="stat-card"><div class="stat-num">${s.bestStreak}</div><div class="stat-lbl">רצף שיא</div></div>
-        <div class="stat-card"><div class="stat-num">${s.bestAtt||'—'}</div><div class="stat-lbl">ניסיון שיא</div></div>
-        <div class="stat-card"><div class="stat-num">${avgAtt}</div><div class="stat-lbl">ממוצע ניסיונות</div></div>
-      </div>
-      <div class="dist-title">התפלגות ניסיונות</div>
-      ${distRows}`;
-  }
-
-  renderTabs();renderBody();
-  show('sStats');
-}
-
-// ══════════════════════════════════════════════════
-//  HOME
-// ══════════════════════════════════════════════════
-function goHome(){
-  challengeMode=false;
-  history.replaceState&&history.replaceState({},'',location.pathname);
-  resetTemp();renderProfileBar();show('sHome');
-}
-
-// ══════════════════════════════════════════════════
-//  CHALLENGE PARAM
-// ══════════════════════════════════════════════════
-function checkChallenge(){
-  const c=new URLSearchParams(location.search).get('c');
-  if(!c)return false;
-  const parts=c.split('_');
-  if(parts.length<2)return false;
-  const [n,dk,mk]=parts;
-  if(!DIFFS[dk])return false;
-  challengeMode=true;
-  startGame(dk,mk||'normal',parseInt(n,10));
-  return true;
-}
-
-document.addEventListener('keydown',e=>{if(e.key==='Enter')makeGuess()});
-renderProfileBar();
-checkChallenge()||show('sHome');
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
