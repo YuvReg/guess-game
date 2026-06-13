@@ -39,7 +39,7 @@
 
   /* walk controls */
   .pad{position:fixed;bottom:calc(26px + var(--safe-b));z-index:6;pointer-events:none}
-  .pad.move{left:calc(16px + var(--safe-l));display:flex;gap:12px}
+  .pad.move{left:calc(16px + var(--safe-l));display:flex;gap:12px;direction:ltr}
   .pad.jump{right:calc(16px + var(--safe-r))}
   .wbtn{pointer-events:auto;border:none;border-radius:50%;color:#fff;font-weight:800;
     box-shadow:0 7px 22px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
@@ -81,7 +81,7 @@
     border:2px solid #34344f;border-radius:12px;padding:6px;margin-bottom:10px;background:#0e0e1e}
   .ch-disp.bad{border-color:#ff5252;animation:shk .35s}
   @keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-  .pad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .pad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;direction:ltr}
   .pad-grid button{padding:15px 0;border-radius:12px;border:1.5px solid #34344f;background:#1d1d36;
     color:#fff;font-size:1.3rem;font-weight:800;cursor:pointer}
   .pad-grid button:active{transform:scale(.94);background:#2a2a48}
@@ -632,8 +632,18 @@ function render(){
     ctx.fillStyle=level.ground;ctx.beginPath();ctx.roundRect(sxp,top,pl.w,22,8);ctx.fill();
     ctx.fillStyle=level.grass;ctx.beginPath();ctx.roundRect(sxp,top,pl.w,6,4);ctx.fill();
   });
-  // hazards
-  level.hazards.forEach(h=>emoji('🔥',h.x+h.w/2,GROUND_Y-2,34));
+  // hazards (bold drawn spikes so they're clearly visible)
+  level.hazards.forEach(h=>{
+    const sx=h.x-camX;if(sx<-80||sx>W+80)return;
+    const cxm=sx+h.w/2;
+    ctx.fillStyle='#e53935';ctx.strokeStyle='#5a0000';ctx.lineWidth=2.5;ctx.lineJoin='round';
+    for(let k=-1;k<=1;k++){
+      const bx=cxm+k*15, th=k===0?48:36;
+      ctx.beginPath();ctx.moveTo(bx-11,GROUND_Y);ctx.lineTo(bx,GROUND_Y-th);ctx.lineTo(bx+11,GROUND_Y);
+      ctx.closePath();ctx.fill();ctx.stroke();
+    }
+    emoji('⚠️',h.x+h.w/2,GROUND_Y-54,24);
+  });
   // checkpoints
   level.checkpoints.forEach(c=>emoji(c.done?'🚩':'🏳️',c.x,GROUND_Y-2,34));
   // stars
