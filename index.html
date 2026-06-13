@@ -86,6 +86,7 @@
 <div class="hud">
   <div class="hud-l">
     <div class="glass"><span class="coin" id="hCoins">🪙 0</span></div>
+    <div class="glass"><span id="hSize">⚪ 0/8</span></div>
     <div class="glass"><span class="pw" id="hPow">⚡ 0</span></div>
   </div>
   <div class="hud-r">
@@ -187,6 +188,8 @@ let state='start', level, levelIdx=0, GROUND_Y=0, camX=0;
 let momentum=0, runPower=0, lifetime=0, coinsCollected=0;
 let shakeMag=0, particles=[], popups=[], lastCheckpointX=20, appearFlash=0;
 let starsGot=0, totalStars=1;
+let pSize=0, growth=0;
+const GROW=8;
 let zoneReqTotal={}, zoneReqGot={};
 const keys={left:false,right:false,jump:false};
 const player={x:20,prevX:20,y:0,prevY:0,vx:0,vy:0,facing:1,grounded:true,onPlat:false,
@@ -229,6 +232,8 @@ function sndStomp(){tone(820,.07,.22,'square',1180);setTimeout(()=>tone(1180,.09
 function sndCheck(){tone(523,.1,.2,'sine');setTimeout(()=>tone(784,.14,.2,'sine'),90);}
 function sndOpen(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.1,.2,'triangle'),i*70));}
 function sndAppear(){[660,880,1175].forEach((f,i)=>setTimeout(()=>tone(f,.12,.2,'triangle'),i*90));}
+function sndGrow(){[523,659,784,988,1175].forEach((f,i)=>setTimeout(()=>tone(f,.09,.2,'square'),i*55));}
+function sndShrink(){[700,500,350].forEach((f,i)=>setTimeout(()=>tone(f,.1,.2,'sawtooth'),i*70));}
 function sndWin(){[392,523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,.16,.22,'triangle'),i*120));}
 function sndPing(prox){tone(400+prox*900,.1,.16,'sine');}
 function haptic(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
@@ -293,6 +298,7 @@ function startLevel(){
   level.coins.forEach(c=>{if(c.h<=70)zoneReqTotal[c.zone]++;});
   totalStars=level.stars.length;
   momentum=40;runPower=0;coinsCollected=0;lastCheckpointX=20;particles=[];popups=[];shakeMag=0;appearFlash=0;
+  pSize=0;growth=0;
   Object.assign(player,{x:20,prevX:20,y:GROUND_Y,prevY:GROUND_Y,vx:0,vy:0,facing:1,grounded:true,onPlat:false,
     curPlat:null,coyote:0,jumpBuf:0,stagger:0,invuln:0,sx:1,sy:1,walkT:0});
   show(null);state='play';updateHUD();
@@ -312,10 +318,19 @@ function failSegment(){
   level.enemies.forEach(e=>{if(e.x0>lastCheckpointX){e.alive=true;e.squashT=0;e.x=e.x0;e.dir=1;e.hopY=0;e.onGround=true;}});
 }
 function hitHazard(){
-  if(player.invuln>0)return;const nm=momentum-34;
-  shakeMag=12;sndOof();haptic(30);player.jumpBuf=0;
-  if(nm<=0){momentum=0;failSegment();return;}
-  momentum=nm;player.stagger=0.4;player.invuln=1.1;player.vx=-260*player.facing;player.vy=-240;
+  if(player.invuln>0)return;player.jumpBuf=0;
+  if(pSize>0){ // BIG -> shrink to small, survive (Mario rule)
+    pSize=0;growth=0;player.invuln=1.4;player.vx=-220*player.facing;player.vy=-220;
+    shakeMag=10;sndShrink();haptic([40,30,40]);
+    popups.push({x:player.x,y:player.y-70,txt:'💢',life:1,col:'#ff8a80'});updateHUD();
+  }else{ // SMALL -> die, restart from checkpoint
+    shakeMag=14;sndOof();haptic([200,100,200]);failSegment();
+  }
+}
+function growBig(){
+  if(pSize>0)return;pSize=1;growth=0;player.invuln=0.5;
+  sndGrow();burstAt(player.x,player.y-50,'#7CFFB2');shakeMag=6;
+  popups.push({x:player.x,y:player.y-86,txt:'גדלת! 🔵',life:1.4,col:'#7CFFB2'});updateHUD();
 }
 
 // ════════ COINS / ZONES ════════
@@ -324,6 +339,7 @@ function collectCoin(c){
   sndCoin();burstAt(c.x,GROUND_Y-c.h,'#ffcf33');
   popups.push({x:c.x,y:GROUND_Y-c.h,txt:'+'+(c.big?5:1),life:1,col:'#ffcf33'});
   if(c.h<=70){zoneReqGot[c.zone]++;checkZoneSpawn(c.zone);}
+  if(pSize===0){growth++;if(growth>=GROW)growBig();}
   updateHUD();
 }
 function checkZoneSpawn(z){
@@ -375,6 +391,7 @@ function submitGuess(){
     const speedF=Math.max(.5,Math.min(2,2-elapsed/10)), eff=1+chLeft/chMax;
     const gain=Math.round(15*speedF*eff);
     runPower+=gain;lifetime+=gain;chPresent.opened=true;
+    if(pSize===0)growBig();
     save.lifetimePower=(save.lifetimePower||0)+gain;writeSave(save);
     fb.innerHTML=`<div class="ar">🎉</div><div class="t" style="color:#69f0ae">+${gain} ⚡!</div>`;
     sndOpen();haptic([60,40]);burstAt(chPresent.x,GROUND_Y-40,level.accent);
@@ -464,13 +481,19 @@ function updateEnemies(dt){
       if(!e.onGround){e.vy+=2600*dt;e.hopY-=e.vy*dt;if(e.hopY<=0){e.hopY=0;e.onGround=true;e.vy=0;}}}
     const ew=e.type==='hopper'?36:40, eh=e.type==='hopper'?34:40;
     const eTop=GROUND_Y-((e.type==='hopper'?e.hopY:0)+eh);
-    if(Math.abs(p.x-e.x)<ew/2+14){
-      if(p.vy>0&&p.prevY<=eTop+12){
+    const eLeft=e.x-ew/2, eRight=e.x+ew/2;
+    const pHalf=pSize?22:17, pHead=p.y-(pSize?86:64);
+    // AABB overlap of Zuzu's body with the enemy's body
+    const overlap = p.x+pHalf>eLeft && p.x-pHalf<eRight && pHead<GROUND_Y && p.y>eTop;
+    if(overlap){
+      // precise head-stomp: must be descending AND have come from above the enemy's top
+      const stomping = p.vy>0 && p.prevY<=eTop+8;
+      if(stomping){
         e.alive=false;e.squashT=0.3;
         p.vy=keys.jump?-640:-500;p.grounded=false;p.onPlat=false;p.curPlat=null;p.coyote=0;p.jumpBuf=0;p.sx=0.7;p.sy=1.3;
         runPower+=5;lifetime+=5;sndStomp();burstAt(e.x,eTop,'#d8b4ff');haptic(15);shakeMag=5;
         popups.push({x:e.x,y:eTop,txt:'+5',life:1,col:'#d8b4ff'});updateHUD();
-      }else if(p.invuln<=0&&p.y>eTop+6){hitHazard();}
+      }else if(p.invuln<=0){hitHazard();}
     }
   }
 }
@@ -524,7 +547,7 @@ function drawZuzu(){
   const p=player;if(p.invuln>0&&Math.floor(performance.now()/80)%2)return;
   const sx=p.x-camX,fy=p.y;ctx.save();ctx.translate(sx,fy);
   if(momentum>70){ctx.shadowBlur=20;ctx.shadowColor='#ffd447';}
-  ctx.scale(p.facing,1);const bob=p.grounded?-Math.abs(Math.sin(p.walkT*2))*4:0;ctx.translate(0,bob);ctx.scale(p.sx,p.sy);
+  const gs=pSize?1.35:1;ctx.scale(p.facing*gs,gs);const bob=p.grounded?-Math.abs(Math.sin(p.walkT*2))*4:0;ctx.translate(0,bob);ctx.scale(p.sx,p.sy);
   const sw=Math.sin(p.walkT)*7;ctx.strokeStyle='#E8533A';ctx.lineWidth=6;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(-8,-10);ctx.lineTo(-8+sw,2);ctx.stroke();
   ctx.beginPath();ctx.moveTo(8,-10);ctx.lineTo(8-sw,2);ctx.stroke();
@@ -588,6 +611,7 @@ function render(){
 // ════════ HUD ════════
 function updateHUD(){
   document.getElementById('hCoins').textContent='🪙 '+coinsCollected;
+  document.getElementById('hSize').textContent=pSize?'🔵 גדול':`⚪ ${growth}/${GROW}`;
   document.getElementById('hPow').textContent='⚡ '+runPower;
   document.getElementById('hStars').textContent=`⭐ ${starsGot}/${totalStars}`;
   document.getElementById('hDist').textContent=Math.floor(player.x/8)+' מ׳';
