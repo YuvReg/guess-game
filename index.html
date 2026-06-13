@@ -7,8 +7,12 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;display:flex;align-items:center;justify-content:center;
-      background:#0f0f1a;font-family:'Segoe UI',Arial,sans-serif;color:#fff;overflow-x:hidden}
-    #confettiCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100}
+      background:linear-gradient(-45deg,#0f0f1a,#1a1030,#0d1a2a,#1a0f22);
+      background-size:400% 400%;animation:bgShift 22s ease infinite;
+      font-family:'Segoe UI',Arial,sans-serif;color:#fff;overflow-x:hidden}
+    @keyframes bgShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    #confettiCanvas,#burstCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
+    #confettiCanvas{z-index:100}#burstCanvas{z-index:101}
     .card{background:#1a1a2e;border:2px solid #2a2a4a;border-radius:24px;padding:36px 32px;
       width:460px;max-width:96vw;text-align:center;
       box-shadow:0 20px 60px rgba(0,0,0,.5);transition:background .7s,border-color .7s,box-shadow .7s}
@@ -170,14 +174,54 @@
     .diff-tab{padding:5px 12px;border-radius:8px;border:1.5px solid #2a2a4a;
       background:#0f0f1a;color:#6b7280;font-size:.8rem;cursor:pointer;transition:all .2s}
     .diff-tab.active{border-color:#a78bfa;color:#a78bfa;background:#1a1030}
+
+    /* ── PROFILE BAR (rank / xp / coins) ── */
+    .profile-bar{display:flex;align-items:center;gap:10px;background:#0f0f1a;
+      border:1.5px solid #2a2a4a;border-radius:14px;padding:9px 12px;margin-bottom:18px}
+    .pb-rank{font-size:1.5rem;line-height:1;filter:drop-shadow(0 0 6px rgba(167,139,250,.5))}
+    .pb-mid{flex:1;text-align:right;min-width:0}
+    .pb-name{font-size:.82rem;font-weight:700;color:#e5e7eb}
+    .pb-name .lvl{color:#a78bfa}
+    .pb-xptrack{height:7px;background:#1f1f3a;border-radius:4px;overflow:hidden;margin-top:4px}
+    .pb-xpfill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa,#c4b5fd);
+      border-radius:4px;transition:width .6s ease;box-shadow:0 0 8px rgba(167,139,250,.5)}
+    .pb-coins{display:flex;align-items:center;gap:3px;font-weight:700;color:#fbbf24;
+      font-size:.9rem;white-space:nowrap}
+
+    /* ── WIN REWARDS ── */
+    .rewards{display:flex;justify-content:center;gap:10px;margin-bottom:12px}
+    .reward-chip{background:#0f0f1a;border:1.5px solid #2a2a4a;border-radius:12px;
+      padding:8px 14px;font-weight:700;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+    .reward-chip.xp{color:#a78bfa;border-color:#a78bfa}
+    .reward-chip.coin{color:#fbbf24;border-color:#fbbf24}
+    .levelup{color:#34d399;font-weight:700;font-size:.95rem;margin-bottom:10px;
+      animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
+
+    /* ── ACHIEVEMENT TOASTS ── */
+    #toasts{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;
+      display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+    .toast{display:flex;align-items:center;gap:10px;background:#1a1a2e;
+      border:2px solid #fbbf24;border-radius:14px;padding:10px 16px;min-width:240px;
+      box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 24px rgba(251,191,36,.25);
+      animation:toastIn .5s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes toastIn{from{transform:translateY(-30px) scale(.7);opacity:0}to{transform:none;opacity:1}}
+    .toast.out{animation:toastOut .4s ease forwards}
+    @keyframes toastOut{to{transform:translateY(-30px) scale(.8);opacity:0}}
+    .toast .ti{font-size:1.7rem}
+    .toast .tlbl{font-size:.68rem;color:#fbbf24;font-weight:700}
+    .toast .tname{font-size:.92rem;font-weight:700;color:#fff}
+    .toast .tdesc{font-size:.74rem;color:#9ca3af}
   </style>
 </head>
 <body>
 <canvas id="confettiCanvas"></canvas>
+<canvas id="burstCanvas"></canvas>
+<div id="toasts"></div>
 <div class="card" id="card">
 
   <!-- HOME -->
   <div class="screen active" id="sHome">
+    <div class="profile-bar" id="profileBar"></div>
     <h1>נחש את המספר 🎯</h1>
     <p class="sub">בחר מצב משחק</p>
     <div class="mode-grid">
@@ -264,6 +308,8 @@
     <div class="ri">🎉</div>
     <div class="rt win">כל הכבוד! ניחשת!</div>
     <div class="rs" id="winStats"></div>
+    <div class="levelup" id="levelUp" style="display:none"></div>
+    <div class="rewards" id="winRewards"></div>
     <div class="nb" id="newBest"></div>
     <div class="share-card" id="shareCard"></div>
     <div class="actions">
@@ -533,6 +579,128 @@ function confetti(){
 }
 
 // ══════════════════════════════════════════════════
+//  WIN PARTICLE BURST
+// ══════════════════════════════════════════════════
+function burst(){
+  const cv=document.getElementById('burstCanvas'),cx=cv.getContext('2d');
+  cv.width=innerWidth;cv.height=innerHeight;
+  const r=document.getElementById('card').getBoundingClientRect();
+  const ox=r.left+r.width/2, oy=r.top+r.height/2;
+  const COLS=['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#fb7185','#fff'];
+  const ps=Array.from({length:70},()=>{
+    const a=Math.random()*Math.PI*2,sp=Math.random()*10+3;
+    return{x:ox,y:oy,dx:Math.cos(a)*sp,dy:Math.sin(a)*sp,
+      rad:Math.random()*4+2,col:COLS[Math.floor(Math.random()*COLS.length)],op:1};
+  });
+  let raf;
+  function draw(){
+    cx.clearRect(0,0,cv.width,cv.height);let alive=false;
+    ps.forEach(p=>{if(p.op>.02){alive=true;
+      p.x+=p.dx;p.y+=p.dy;p.dy+=.18;p.dx*=.95;p.dy*=.95;p.op*=.93;
+      cx.save();cx.globalAlpha=p.op;cx.fillStyle=p.col;
+      cx.beginPath();cx.arc(p.x,p.y,p.rad,0,7);cx.fill();cx.restore();}});
+    if(alive)raf=requestAnimationFrame(draw);
+    else cx.clearRect(0,0,cv.width,cv.height);
+  }
+  draw();setTimeout(()=>{cancelAnimationFrame(raf);cx.clearRect(0,0,cv.width,cv.height)},2500);
+}
+
+// ══════════════════════════════════════════════════
+//  CARD SCREEN-SHAKE
+// ══════════════════════════════════════════════════
+function shakeCard(intensity){
+  const c=document.getElementById('card'),start=performance.now(),dur=260;
+  (function f(t){
+    const e=(t-start)/dur;
+    if(e>=1){c.style.transform='';return;}
+    c.style.transform=`translateX(${Math.sin(e*38)*intensity*(1-e)}px)`;
+    requestAnimationFrame(f);
+  })(start);
+}
+
+// ══════════════════════════════════════════════════
+//  PROGRESSION — XP / COINS / RANK / ACHIEVEMENTS
+// ══════════════════════════════════════════════════
+const RANKS=[
+  {min:1, name:'מתחיל',     icon:'🌱'},
+  {min:3, name:'בלש',        icon:'🔍'},
+  {min:5, name:'פצחן',       icon:'🧩'},
+  {min:8, name:'אורקל',      icon:'🔮'},
+  {min:12,name:'מאסטרמיינד', icon:'🧠'},
+  {min:16,name:'גרנדמאסטר',  icon:'👑'},
+];
+const ACHIEVEMENTS=[
+  {id:'first',   icon:'🩸', name:'דם ראשון',          desc:'הניצחון הראשון שלך'},
+  {id:'sniper',  icon:'🎯', name:'צלף',                desc:'נצח ב-3 ניחושים או פחות'},
+  {id:'bullseye',icon:'💥', name:'בול בפעם הראשונה',   desc:'נצח בניחוש אחד'},
+  {id:'purist',  icon:'🧘', name:'טהרן',               desc:'נצח בקושי קשה בלי רמזים'},
+  {id:'hot5',    icon:'🔥', name:'רצף לוהט',           desc:'5 ניצחונות ברצף'},
+  {id:'marathon',icon:'🏃', name:'מרתוניסט',           desc:'50 ניצחונות בסך הכל'},
+];
+function levelInfo(xp){
+  let lvl=1,need=100,acc=0;
+  while(xp>=acc+need){acc+=need;lvl++;need=lvl*100;}
+  const into=xp-acc;
+  return{level:lvl,into,need,pct:Math.round(into/need*100)};
+}
+function rankFor(level){let r=RANKS[0];for(const x of RANKS)if(level>=x.min)r=x;return r;}
+function getProfile(){
+  const v=localStorage.getItem('gprofile');
+  if(v)return JSON.parse(v);
+  return{xp:0,coins:0,wins:0,winStreak:0,ach:[]};
+}
+function saveProfile(p){localStorage.setItem('gprofile',JSON.stringify(p))}
+
+function renderProfileBar(){
+  const p=getProfile(),li=levelInfo(p.xp),rk=rankFor(li.level);
+  document.getElementById('profileBar').innerHTML=`
+    <span class="pb-rank">${rk.icon}</span>
+    <div class="pb-mid">
+      <div class="pb-name">${rk.name} <span class="lvl">· רמה ${li.level}</span></div>
+      <div class="pb-xptrack"><div class="pb-xpfill" style="width:${li.pct}%"></div></div>
+    </div>
+    <span class="pb-coins">🪙 ${p.coins.toLocaleString()}</span>`;
+}
+
+function awardProgress(used){
+  const p=getProfile();
+  const base={easy:20,medium:40,hard:80}[curDiff]||30;
+  const eff=mode.limit?Math.round(base*(attLeft/maxAtt))
+                      :Math.max(0,Math.round(base*(1-Math.min(1,used/15))));
+  const noHint=hintUsed?0:Math.round(base*.25);
+  const xpGain=base+eff+noHint;
+  const before=levelInfo(p.xp).level;
+  p.xp+=xpGain;
+  const after=levelInfo(p.xp).level;
+  const coinGain=10+(used<=3?15:0)+(hintUsed?0:5);
+  p.coins+=coinGain;
+  p.wins++;p.winStreak++;
+  const newAch=[];
+  const unlock=id=>{if(!p.ach.includes(id)){p.ach.push(id);newAch.push(ACHIEVEMENTS.find(a=>a.id===id));}};
+  unlock('first');
+  if(used<=3)unlock('sniper');
+  if(used===1)unlock('bullseye');
+  if(curDiff==='hard'&&!hintUsed)unlock('purist');
+  if(p.winStreak>=5)unlock('hot5');
+  if(p.wins>=50)unlock('marathon');
+  saveProfile(p);
+  return{xpGain,coinGain,newAch,leveledUp:after>before,level:after};
+}
+function resetWinStreak(){const p=getProfile();p.winStreak=0;saveProfile(p);}
+
+function showToast(ach){
+  const wrap=document.getElementById('toasts');
+  const t=document.createElement('div');t.className='toast';
+  t.innerHTML=`<span class="ti">${ach.icon}</span>
+    <div><div class="tlbl">🏆 הישג חדש!</div>
+    <div class="tname">${ach.name}</div>
+    <div class="tdesc">${ach.desc}</div></div>`;
+  wrap.appendChild(t);
+  playTone(880,.12,.2);setTimeout(()=>playTone(1175,.18,.2),90);
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),400)},4200);
+}
+
+// ══════════════════════════════════════════════════
 //  SHARE / CHALLENGE
 // ══════════════════════════════════════════════════
 function buildShareText(att,sec){
@@ -648,10 +816,19 @@ function makeGuess(){
     addHist(val,'win',0);
     zone.innerHTML=`<div class="arrow wa"><div style="font-size:2rem">🎉</div>
       <div class="msg" style="color:#34d399;font-size:1.2rem">ניחשת!</div></div>`;
-    confetti();soundWin();haptic([100,50,200]);
+    confetti();burst();soundWin();haptic([100,50,200]);
 
     const used=mode.limit?maxAtt-attLeft:histArr.length;
     const st=recordWin(statsKey(),used,elapsed);
+    const aw=awardProgress(used);
+    document.getElementById('winRewards').innerHTML=
+      `<span class="reward-chip xp">+${aw.xpGain} XP</span>
+       <span class="reward-chip coin">+${aw.coinGain} 🪙</span>`;
+    const luEl=document.getElementById('levelUp');
+    if(aw.leveledUp){luEl.style.display='block';
+      luEl.textContent=`⬆️ עלית לרמה ${aw.level}! (${rankFor(aw.level).icon} ${rankFor(aw.level).name})`;}
+    else luEl.style.display='none';
+    aw.newAch.forEach((a,i)=>setTimeout(()=>showToast(a),1100+i*600));
     const isNew=st.bestAtt===used&&st.bestSec===elapsed&&st.won===1||
                 (st.bestAtt===used&&st.bestSec===elapsed&&st.won<=3);
 
@@ -689,10 +866,12 @@ function makeGuess(){
     addHist(val,'down',dist);
   }
 
+  if(!won)shakeCard(dist<=10?5:8);
+
   if(!won&&mode.limit&&attLeft<=0){
     over=true;stopTimer();
-    recordLoss(statsKey());
-    soundLose();haptic([200,100,200]);
+    recordLoss(statsKey());resetWinStreak();
+    soundLose();haptic([200,100,200]);shakeCard(15);
     document.getElementById('guessBtn').disabled=true;
     document.getElementById('guessInput').disabled=true;
     document.getElementById('overStats').innerHTML=
@@ -760,7 +939,7 @@ function showStats(){
 function goHome(){
   challengeMode=false;
   history.replaceState&&history.replaceState({},'',location.pathname);
-  resetTemp();show('sHome');
+  resetTemp();renderProfileBar();show('sHome');
 }
 
 // ══════════════════════════════════════════════════
@@ -779,6 +958,7 @@ function checkChallenge(){
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Enter')makeGuess()});
+renderProfileBar();
 checkChallenge()||show('sHome');
 </script>
 </body>
