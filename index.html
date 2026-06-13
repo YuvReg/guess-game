@@ -1,542 +1,670 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>הרפתקת המתנות 🎁</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;color:#fff;
-      user-select:none;touch-action:none}
-    #game{position:fixed;inset:0;display:block}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>זוזו והדרכים 🎁</title>
+<style>
+  :root{--safe-b:env(safe-area-inset-bottom);--safe-l:env(safe-area-inset-left);--safe-r:env(safe-area-inset-right)}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#1a1430;font-family:'Segoe UI',Arial,sans-serif;
+    color:#fff;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+  canvas{position:fixed;inset:0;display:block}
 
-    /* ── HUD ── */
-    .hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
-      align-items:flex-start;padding:12px 16px;z-index:5;pointer-events:none;font-weight:700}
-    .hud-pill{background:rgba(15,15,30,.62);backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.18);
-      border-radius:14px;padding:8px 14px;font-size:.92rem;display:flex;gap:14px;align-items:center}
-    .hud-pill .lv{color:#ffd54f}.hud-pill .pw{color:#80d8ff}.hud-pill .gf{color:#f48fb1}
-    .hud-right{text-align:left}
-    .hud-dist{font-size:.78rem;color:#e0e0e0;margin-top:5px;text-align:left;
-      background:rgba(15,15,30,.5);border-radius:10px;padding:3px 10px;display:inline-block}
+  /* HUD */
+  .hud{position:fixed;top:0;left:0;right:0;z-index:5;pointer-events:none;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:calc(10px + var(--safe-b)*0) 14px;padding-top:max(12px,var(--safe-b))}
+  .glass{background:rgba(255,255,255,.12);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.25);border-radius:16px;padding:8px 13px;font-weight:700}
+  .hud-l{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+  .hud-r{text-align:left;font-size:.9rem}
+  .pw{color:#ffd447}.dist{color:#bfe3ff;font-size:.82rem;margin-top:3px}
+  .stars{color:#ffd447}
+  .mbar-wrap{position:fixed;left:14px;right:14px;bottom:calc(8px + var(--safe-b));z-index:5;pointer-events:none}
+  .mbar-lbl{font-size:.66rem;color:#cbd5e1;margin-bottom:3px;text-align:right;font-weight:700}
+  .mbar{height:10px;background:rgba(255,255,255,.14);border-radius:6px;overflow:hidden;
+    border:1px solid rgba(255,255,255,.2)}
+  .mfill{height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#2ec4b6,#ff6b4a);
+    transition:width .12s linear}
 
-    /* ── WALK BUTTONS ── */
-    .pad{position:fixed;bottom:22px;left:0;right:0;display:flex;justify-content:space-between;
-      padding:0 22px;z-index:5;pointer-events:none}
-    .walk-btn{pointer-events:auto;width:78px;height:78px;border-radius:50%;border:none;
-      background:rgba(126,87,194,.82);color:#fff;font-size:2rem;font-weight:700;cursor:pointer;
-      box-shadow:0 8px 24px rgba(0,0,0,.45);transition:transform .1s,background .15s;
-      display:flex;align-items:center;justify-content:center}
-    .walk-btn:active{transform:scale(.9);background:rgba(149,117,205,.95)}
-    .hint-key{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:5;
-      font-size:.8rem;color:rgba(255,255,255,.7);background:rgba(15,15,30,.5);
-      padding:5px 14px;border-radius:20px;pointer-events:none}
+  /* spend buttons */
+  .spends{position:fixed;top:calc(64px + var(--safe-b));left:14px;z-index:6;display:flex;gap:8px}
+  .spend{pointer-events:auto;background:rgba(20,16,40,.7);border:1.5px solid #2ec4b6;color:#fff;
+    border-radius:12px;padding:7px 10px;font-size:.78rem;font-weight:700;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:1px;min-width:54px}
+  .spend small{color:#ffd447;font-size:.66rem}
+  .spend:disabled{opacity:.4;border-color:#555}
+  .spend:active{transform:scale(.94)}
 
-    /* ── OVERLAYS ── */
-    .overlay{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
-      background:rgba(8,8,20,.72);backdrop-filter:blur(4px);padding:18px}
-    .overlay.active{display:flex;animation:fade .25s ease}
-    @keyframes fade{from{opacity:0}to{opacity:1}}
-    .card{background:#15152a;border:2px solid #34344f;border-radius:24px;padding:30px 26px;
-      width:430px;max-width:95vw;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6);
-      animation:popin .4s cubic-bezier(.34,1.56,.64,1)}
-    @keyframes popin{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
-    .big-emoji{font-size:3.4rem;margin-bottom:8px;display:block}
-    h1{font-size:1.7rem;margin-bottom:6px}
-    h1.win{color:#69f0ae}h1.lose{color:#ff8a80}
-    .sub{color:#b0b0c8;font-size:.95rem;margin-bottom:20px;line-height:1.6}
-    .sub strong{color:#fff}
-    .btn{display:block;width:100%;padding:14px;border-radius:14px;border:none;cursor:pointer;
-      font-size:1rem;font-weight:700;margin-top:10px;transition:transform .1s,filter .15s}
-    .btn:active{transform:scale(.97)}
-    .btn-go{background:linear-gradient(90deg,#7e57c2,#9575cd);color:#fff}
-    .btn-go:hover{filter:brightness(1.1)}
-    .btn-ghost{background:transparent;border:2px solid #44445f;color:#b0b0c8}
+  /* walk controls */
+  .pad{position:fixed;bottom:calc(26px + var(--safe-b));z-index:6;pointer-events:none}
+  .pad.move{left:calc(16px + var(--safe-l));display:flex;gap:12px}
+  .pad.jump{right:calc(16px + var(--safe-r))}
+  .wbtn{pointer-events:auto;border:none;border-radius:50%;color:#fff;font-weight:800;
+    box-shadow:0 7px 22px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+  .move .wbtn{width:72px;height:72px;font-size:1.7rem;background:rgba(126,87,194,.82)}
+  .jump .wbtn{width:88px;height:88px;font-size:1.2rem;background:rgba(46,196,182,.85)}
+  .wbtn:active{transform:scale(.92);filter:brightness(1.3)}
 
-    /* ── CHALLENGE ── */
-    .ch-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:.95rem}
-    .hearts{letter-spacing:2px;font-size:1.05rem}
-    .ch-timer{color:#80d8ff;font-weight:700;font-variant-numeric:tabular-nums}
-    .ch-arrow{height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;
-      margin-bottom:12px}
-    .ch-arrow .ar{font-size:3rem;line-height:1;animation:bob .7s ease-in-out infinite}
-    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-    .ch-msg{font-size:1.15rem;font-weight:700;margin-top:6px}
-    .ch-msg.up{color:#64b5f6}.ch-msg.down{color:#ffb74d}.ch-msg.hot{color:#ffd54f}
-    .ch-htxt{font-size:.82rem;color:#9090a8;margin-top:3px}
-    .ch-input{display:flex;gap:8px}
-    .ch-input input{flex:1;padding:13px;border-radius:13px;border:2px solid #34344f;background:#0e0e1e;
-      color:#fff;font-size:1.3rem;text-align:center;outline:none}
-    .ch-input input:focus{border-color:#9575cd}
-    .ch-input input::-webkit-inner-spin-button{-webkit-appearance:none}
-    .ch-input button{padding:0 22px;border-radius:13px;border:none;background:#7e57c2;color:#fff;
-      font-size:1rem;font-weight:700;cursor:pointer}
-    .ch-input button:active{transform:scale(.96)}
-    .ch-hist{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:12px;min-height:22px}
-    .ch-chip{background:#0e0e1e;border:1px solid #34344f;border-radius:8px;padding:3px 9px;
-      font-size:.8rem;font-weight:700;color:#c8c8d8;animation:popin .2s ease}
-    .ch-chip.up{border-color:#3a6da8}.ch-chip.down{border-color:#a87a3a}.ch-chip.hot{border-color:#a89a3a}
-    .pwgain{color:#80d8ff;font-weight:700;font-size:1.05rem;min-height:24px;margin-bottom:4px}
+  .mute{position:fixed;top:max(12px,var(--safe-b));right:50%;transform:translateX(50%);z-index:7;
+    pointer-events:auto;background:rgba(20,16,40,.6);border:1px solid rgba(255,255,255,.2);
+    color:#fff;border-radius:50%;width:38px;height:38px;font-size:1rem;cursor:pointer}
 
-    .levels-line{font-size:.8rem;color:#8888a0;margin-top:16px;line-height:1.8}
-    #confetti{position:fixed;inset:0;z-index:25;pointer-events:none}
-  </style>
+  /* overlays */
+  .ov{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+    background:rgba(8,8,20,.74);backdrop-filter:blur(4px);padding:18px}
+  .ov.on{display:flex;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .card{background:#15152a;border:2px solid #34344f;border-radius:24px;padding:26px 22px;
+    width:420px;max-width:95vw;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6);
+    animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes pop{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
+  .em{font-size:3.2rem;display:block;margin-bottom:6px}
+  h1{font-size:1.6rem;margin-bottom:6px}h1.win{color:#69f0ae}
+  .sub{color:#b6b6cc;font-size:.95rem;margin-bottom:18px;line-height:1.6}
+  .sub b{color:#fff}
+  .btn{display:block;width:100%;padding:14px;border-radius:14px;border:none;cursor:pointer;
+    font-size:1rem;font-weight:800;margin-top:10px}
+  .btn:active{transform:scale(.97)}
+  .btn-go{background:linear-gradient(90deg,#7e57c2,#9575cd);color:#fff}
+  .btn-gh{background:transparent;border:2px solid #44445f;color:#b6b6cc}
+
+  /* challenge */
+  .ch-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:1rem}
+  .hearts{letter-spacing:2px}
+  .ch-timer{color:#80d8ff;font-weight:800;font-variant-numeric:tabular-nums}
+  .ch-fb{height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:8px}
+  .ch-fb .ar{font-size:2.2rem;line-height:1}
+  .ch-fb .t{font-size:1.05rem;font-weight:800;margin-top:2px}
+  .ch-disp{font-size:2rem;font-weight:800;letter-spacing:2px;min-height:42px;
+    border:2px solid #34344f;border-radius:12px;padding:6px;margin-bottom:10px;background:#0e0e1e}
+  .ch-disp.bad{border-color:#ff5252;animation:shk .35s}
+  @keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  .pad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .pad-grid button{padding:15px 0;border-radius:12px;border:1.5px solid #34344f;background:#1d1d36;
+    color:#fff;font-size:1.3rem;font-weight:800;cursor:pointer}
+  .pad-grid button:active{transform:scale(.94);background:#2a2a48}
+  .pad-grid .ok{background:#2ec4b6;border-color:#2ec4b6;color:#062}
+  .pad-grid .del{background:#3a2a3a;border-color:#6a3a5a}
+  .ch-hint{margin-top:8px;font-size:.82rem;color:#ffd447;font-weight:700;min-height:18px}
+  .ch-hintbtn{margin-top:8px;background:transparent;border:1.5px solid #ffd447;color:#ffd447;
+    border-radius:10px;padding:6px 12px;font-weight:700;font-size:.8rem;cursor:pointer}
+  .ch-hintbtn:disabled{opacity:.4;border-color:#555;color:#888}
+</style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<canvas id="confetti"></canvas>
 
 <!-- HUD -->
 <div class="hud">
-  <div class="hud-pill">
-    <span class="lv" id="hudLevel">שלב 1</span>
-    <span class="pw" id="hudPower">⚡ 0</span>
-    <span class="gf" id="hudGifts">🎁 0/4</span>
+  <div class="hud-l">
+    <div class="glass"><span class="pw" id="hPow">⚡ 0</span></div>
   </div>
-  <div class="hud-right"><div class="hud-dist" id="hudDist">0 מ׳</div></div>
+  <div class="hud-r glass">
+    <div><span class="stars" id="hStars">⭐ 0/1</span></div>
+    <div class="dist" id="hDist">0 מ׳</div>
+  </div>
+</div>
+<button class="mute" id="muteBtn">🔊</button>
+<div class="spends" id="spends">
+  <button class="spend" id="spRefill">⚡מילוי<small>30</small></button>
+</div>
+<div class="mbar-wrap">
+  <div class="mbar-lbl">תנופה</div>
+  <div class="mbar"><div class="mfill" id="mFill"></div></div>
 </div>
 
-<!-- WALK PAD -->
-<div class="pad" id="pad" style="display:none">
-  <button class="walk-btn" id="btnLeft">◀</button>
-  <button class="walk-btn" id="btnRight">▶</button>
+<!-- controls -->
+<div class="pad move" id="padMove">
+  <button class="wbtn" id="bLeft">◀</button>
+  <button class="wbtn" id="bRight">▶</button>
 </div>
-<div class="hint-key" id="hintKey" style="display:none">חיצים ◀ ▶ או הכפתורים כדי ללכת</div>
+<div class="pad jump" id="padJump">
+  <button class="wbtn" id="bJump">קפוץ</button>
+</div>
 
 <!-- START -->
-<div class="overlay active" id="ovStart">
+<div class="ov on" id="ovStart">
   <div class="card">
-    <span class="big-emoji">🎁</span>
-    <h1>הרפתקת המתנות</h1>
-    <p class="sub">לך קדימה ואסוף מתנות בדרך.<br>
-      כדי לפתוח כל מתנה — <strong>נחש את המספר</strong>!<br>
-      ככל שתנחש מהר יותר, תקבל יותר ⚡ כוח.</p>
-    <button class="btn btn-go" id="btnStart">התחל הרפתקה 🚀</button>
-    <div class="levels-line">
-      שלב 1: 1–100 &nbsp;•&nbsp; שלב 2: 1–500 &nbsp;•&nbsp; שלב 3: 1–2,000<br>
-      שלב 4: 1–20,000 &nbsp;•&nbsp; שלב 5: 1–100,000
-    </div>
+    <span class="em">🟠</span>
+    <h1>זוזו והדרכים</h1>
+    <p class="sub">עזרו ל<b>זוזו</b> לרוץ, לאסוף מתנות ולפתוח אותן —<br>
+      נחשו את המספר כדי לפתוח כל מתנה 🎁<br>
+      רוצו מהר כדי לצבור <b>תנופה</b> ⚡<br>
+      <span id="bestLine" style="color:#ffd447"></span></p>
+    <button class="btn btn-go" id="bStart">התחל 🚀</button>
+    <p class="sub" style="margin:14px 0 0;font-size:.78rem">
+      מחשב: חיצים ← → לזוז, רווח לקפיצה. נייד: הכפתורים למטה.</p>
   </div>
 </div>
 
 <!-- CHALLENGE -->
-<div class="overlay" id="ovChallenge">
+<div class="ov" id="ovCh">
   <div class="card">
-    <span class="big-emoji">🎁</span>
+    <span class="em">🎁</span>
     <h1>מתנה!</h1>
-    <p class="sub">נחש מספר בין 1 ל-<strong id="chMax"></strong></p>
+    <p class="sub">נחשו מספר בין 1 ל-<b id="chMax">100</b></p>
     <div class="ch-bar">
       <span class="hearts" id="chHearts"></span>
       <span class="ch-timer" id="chTimer">⏱ 0.0</span>
     </div>
-    <div class="ch-arrow" id="chArrow"></div>
-    <div class="ch-input">
-      <input id="chInput" type="number" inputmode="numeric">
-      <button id="btnGuess">נחש</button>
-    </div>
-    <div class="ch-hist" id="chHist"></div>
+    <div class="ch-fb" id="chFb"><div class="t" style="color:#9aa">הקלידו ניחוש</div></div>
+    <div class="ch-disp" id="chDisp"></div>
+    <div class="pad-grid" id="padGrid"></div>
+    <button class="ch-hintbtn" id="chHintBtn">💡 רמז (25⚡)</button>
+    <div class="ch-hint" id="chHint"></div>
   </div>
 </div>
 
-<!-- LEVEL COMPLETE -->
-<div class="overlay" id="ovLevel">
+<!-- WIN -->
+<div class="ov" id="ovWin">
   <div class="card">
-    <span class="big-emoji">🏁</span>
-    <h1 class="win">שלב הושלם!</h1>
-    <p class="sub" id="lvStats"></p>
-    <button class="btn btn-go" id="btnNext">לשלב הבא ▶</button>
-  </div>
-</div>
-
-<!-- DISQUALIFIED -->
-<div class="overlay" id="ovOver">
-  <div class="card">
-    <span class="big-emoji">💔</span>
-    <h1 class="lose">נפסלת!</h1>
-    <p class="sub" id="overStats"></p>
-    <button class="btn btn-go" id="btnRetry">נסה שוב את השלב 🔄</button>
-  </div>
-</div>
-
-<!-- VICTORY -->
-<div class="overlay" id="ovWin">
-  <div class="card">
-    <span class="big-emoji">👑</span>
-    <h1 class="win">ניצחת את כל ההרפתקה!</h1>
+    <span class="em">🏁</span>
+    <h1 class="win">סיימת את השלב!</h1>
     <p class="sub" id="winStats"></p>
-    <button class="btn btn-go" id="btnRestart">שחק שוב 🔄</button>
+    <button class="btn btn-go" id="bAgain">שחק שוב 🔄</button>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════════
-//  LEVEL CONFIG
-// ══════════════════════════════════════════════════
+"use strict";
+// roundRect polyfill (older mobile Safari)
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    if(typeof r==='number')r={tl:r,tr:r,br:r,bl:r};else r=r||{tl:0,tr:0,br:0,bl:0};
+    const rr=typeof r==='number'?{tl:r,tr:r,br:r,bl:r}:r;
+    this.beginPath();this.moveTo(x+rr.tl,y);
+    this.lineTo(x+w-rr.tr,y);this.arcTo(x+w,y,x+w,y+rr.tr,rr.tr);
+    this.lineTo(x+w,y+h-rr.br);this.arcTo(x+w,y+h,x+w-rr.br,y+h,rr.br);
+    this.lineTo(x+rr.bl,y+h);this.arcTo(x,y+h,x,y+h-rr.bl,rr.bl);
+    this.lineTo(x,y+rr.tl);this.arcTo(x,y,x+rr.tl,y,rr.tl);
+    this.closePath();return this;};
+}
+// ════════════════ LEVELS (data-driven — add more here later) ════════════════
 const LEVELS=[
-  {lv:1, max:100,    attempts:6,  presents:4},
-  {lv:2, max:500,    attempts:9,  presents:4},
-  {lv:3, max:2000,   attempts:11, presents:5},
-  {lv:4, max:20000,  attempts:15, presents:5},
-  {lv:5, max:100000, attempts:18, presents:6},
+  { world:1, name:'צעדים ראשונים', range:100,
+    sky:['#7ec8e3','#bfe9ff'], far:'#4a6fa5', near:'#5c8a72', ground:'#6b4f3a', grass:'#7fb069', accent:'#ffd447',
+    length:5200,
+    platforms:[ {x:1900,h:120,w:170},{x:2150,h:160,w:160},{x:2400,h:160,w:200},{x:2650,h:120,w:170} ],
+    presents:[ {x:760,h:0}, {x:1500,h:0}, {x:2430,h:160,bonus:true}, {x:3400,h:0}, {x:4100,h:0} ],
+    hazards:[ {x:1120,w:40},{x:2950,w:40},{x:4500,w:40} ],
+    stars:[ {x:2200,h:240} ],
+    checkpoints:[ {x:1850},{x:3350} ],
+    goal:{x:5000} },
 ];
-const THEMES=[
-  {sky:['#7ec8e3','#d4f1ff'], hillF:'#4caf50', hillB:'#81c784', ground:'#5db85d', soil:'#7a5230'},
-  {sky:['#ff9e6d','#ffd9a0'], hillF:'#c98a3a', hillB:'#e0b25a', ground:'#cba24f', soil:'#8a6a2f'},
-  {sky:['#4f7ce0','#9fc0ff'], hillF:'#2e9e6b', hillB:'#5cbf8f', ground:'#3fa06e', soil:'#2f5a3f'},
-  {sky:['#3a2a6a','#7a4aa0'], hillF:'#5a3a8a', hillB:'#7e57c2', ground:'#6a4a8a', soil:'#3a2a5a'},
-  {sky:['#171738','#3a2a6a'], hillF:'#4a2a7a', hillB:'#6a3aa0', ground:'#5a3a7a', soil:'#24163f'},
-];
-const HERO={body:'#7e57c2', belly:'#ede7f6', cap:'#ffca28'};
 
-const PXPERM=8;           // pixels per "meter"
-const SPACING_M=180;      // meters between presents
-const FIRST_M=140;        // meters to first present
-const SPEED=240;          // walk speed px/s
-
-// ══════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════
-let state='start';        // start | play | challenge | level | over | win
-let levelIdx=0, L=LEVELS[0], theme=THEMES[0];
-let heroX=0, heroFacing=1, legPhase=0;
-let presents=[], goalX=0, totalPower=0, levelPower=0;
-const keys={left:false, right:false};
+// ════════════════ STATE ════════════════
+let state='start';
+let level, levelIdx=0, GROUND_Y=0, camX=0;
+let momentum=0, runPower=0, lifetime=0;
+let shakeMag=0, particles=[], lastCheckpointX=20;
+let openedCount=0, starsGot=0, totalStars=1;
+const keys={left:false,right:false,jump:false};
+const player={x:20,prevX:20,y:0,prevY:0,vx:0,vy:0,facing:1,grounded:true,onPlat:false,
+  curPlat:null,coyote:0,jumpBuf:0,stagger:0,invuln:0,sx:1,sy:1,walkT:0};
 
 // challenge
-let curPresent=null, chSecret=0, chLeft=0, chStart=0, chTimerIv=null, chGuesses=[];
+let chIdx=-1, chRange=100, chMax=5, chSecret=0, chLeft=0, chStart=0, chTimerIv=null, padVal='', chHintUsed=false;
 
-// canvas
-const cv=document.getElementById('game'), cx=cv.getContext('2d');
-let W=0, H=0, heroScreenX=0, groundY=0;
+// ════════════════ CANVAS ════════════════
+const cv=document.getElementById('game'), ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
 function resize(){
-  W=cv.width=innerWidth; H=cv.height=innerHeight;
-  heroScreenX=W*0.30; groundY=H*0.80;
-  const cf=document.getElementById('confetti'); cf.width=W; cf.height=H;
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=innerWidth;H=innerHeight;
+  cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  GROUND_Y=H-130;
+  if(player.grounded&&!player.onPlat)player.y=GROUND_Y;
 }
-addEventListener('resize',resize); resize();
+addEventListener('resize',resize);addEventListener('orientationchange',resize);
 
-// ══════════════════════════════════════════════════
-//  AUDIO
-// ══════════════════════════════════════════════════
-let actx=null;
+// ════════════════ AUDIO ════════════════
+let actx=null, muted=false, voices=0;
 function AC(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
-function tone(freq,dur,vol=.2,type='sine'){
+function unlockAudio(){try{const c=AC();if(c.state==='suspended')c.resume();}catch(e){}}
+function tone(freq,dur,vol,type,slideTo){
+  if(muted)return;
+  if(voices>8)return;
   try{const c=AC(),o=c.createOscillator(),g=c.createGain();
-    o.connect(g);g.connect(c.destination);o.type=type;o.frequency.value=freq;
-    g.gain.setValueAtTime(vol,c.currentTime);
+    o.type=type||'sine';o.frequency.setValueAtTime(freq,c.currentTime);
+    if(slideTo)o.frequency.exponentialRampToValueAtTime(slideTo,c.currentTime+dur);
+    g.gain.setValueAtTime(vol||.2,c.currentTime);
     g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);
-    o.start();o.stop(c.currentTime+dur);}catch(e){}
+    o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+dur);
+    voices++;o.onended=()=>{voices--;};
+  }catch(e){}
 }
-function chord(freqs,dur,vol=.2,type='sine'){freqs.forEach(f=>tone(f,dur,vol,type));}
-function sndStep(){tone(120,.05,.06,'square');}
-function sndOpen(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.28,.22),i*90));}
-function sndHot(){tone(700,.12,.18);}
-function sndNear(d,range){const p=d/range;tone(p>.5?180:p>.3?260:p>.15?360:p>.06?500:660,.14,.16);}
-function sndLevel(){[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>tone(f,.3,.24),i*110));}
-function sndOver(){[330,260,200].forEach((f,i)=>setTimeout(()=>tone(f,.3,.22,'sawtooth'),i*130));}
+let stepThrottle=0;
+function sndStep(){const t=performance.now();if(t-stepThrottle<180)return;stepThrottle=t;tone(180,.04,.1,'square');}
+function sndJump(){tone(300,.18,.22,'triangle',620);}
+function sndLand(){tone(140,.12,.25,'sine',70);}
+function sndOof(){tone(200,.22,.28,'sawtooth',90);}
+function sndStar(){tone(880,.12,.2,'triangle',1320);}
+function sndCheck(){tone(523,.1,.2,'sine');setTimeout(()=>tone(784,.14,.2,'sine'),90);}
+function sndOpen(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.1,.2,'triangle'),i*70));}
+function sndWin(){[392,523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,.16,.22,'triangle'),i*120));}
+function sndPing(prox){const f=400+prox*900;tone(f,.1,.18,'sine');}
 function haptic(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
 
-// ══════════════════════════════════════════════════
-//  WORLD RENDER
-// ══════════════════════════════════════════════════
-function drawHills(scroll,factor,color,baseY,amp){
-  cx.fillStyle=color;cx.beginPath();cx.moveTo(0,H);
-  for(let x=0;x<=W;x+=18){
-    const wx=x+scroll*factor;
-    const y=baseY-Math.sin(wx*0.004)*amp-Math.cos(wx*0.011)*amp*0.4;
-    cx.lineTo(x,y);
-  }
-  cx.lineTo(W,H);cx.closePath();cx.fill();
-}
-function drawCloud(x,y,s){
-  cx.fillStyle='rgba(255,255,255,.85)';
-  [[0,0,1],[s*0.7,s*0.1,0.8],[-s*0.7,s*0.1,0.8],[s*0.3,-s*0.25,0.7]].forEach(([dx,dy,r])=>{
-    cx.beginPath();cx.arc(x+dx,y+dy,s*r,0,7);cx.fill();
-  });
-}
-function drawHero(x,phase,facing){
-  cx.save();
-  const bob=Math.abs(Math.sin(phase))*5;
-  cx.translate(x,groundY-bob);
-  if(facing<0)cx.scale(-1,1);
-  const top=-66;
-  // legs
-  const sw=Math.sin(phase)*8;
-  cx.fillStyle='#2b2b40';
-  cx.beginPath();cx.roundRect(-13+sw,-22,11,24,5);cx.fill();
-  cx.beginPath();cx.roundRect(2-sw,-22,11,24,5);cx.fill();
-  // arms
-  const asw=Math.sin(phase+Math.PI)*7;
-  cx.fillStyle=HERO.body;
-  cx.beginPath();cx.roundRect(-27,top+12+asw*0.3,9,22,5);cx.fill();
-  cx.beginPath();cx.roundRect(18,top+12-asw*0.3,9,22,5);cx.fill();
-  // body
-  cx.fillStyle=HERO.body;cx.beginPath();cx.roundRect(-22,top,44,48,16);cx.fill();
-  cx.fillStyle=HERO.belly;cx.beginPath();cx.roundRect(-13,top+20,26,22,11);cx.fill();
-  // eyes
-  cx.fillStyle='#fff';
-  cx.beginPath();cx.arc(-7,top+14,7,0,7);cx.arc(9,top+14,7,0,7);cx.fill();
-  cx.fillStyle='#1a1a1a';
-  cx.beginPath();cx.arc(-5,top+15,3,0,7);cx.arc(11,top+15,3,0,7);cx.fill();
-  // cap
-  cx.fillStyle=HERO.cap;
-  cx.beginPath();cx.arc(0,top+1,24,Math.PI,2*Math.PI);cx.closePath();cx.fill();
-  cx.beginPath();cx.roundRect(0,top-4,32,7,3);cx.fill();
-  cx.restore();
-}
-function render(){
-  const scroll=heroX-heroScreenX;
-  // sky
-  const g=cx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,theme.sky[0]);g.addColorStop(1,theme.sky[1]);
-  cx.fillStyle=g;cx.fillRect(0,0,W,H);
-  // sun
-  cx.fillStyle='rgba(255,245,200,.9)';cx.beginPath();cx.arc(W*0.82,H*0.2,42,0,7);cx.fill();
-  // clouds (parallax)
-  for(let i=0;i<4;i++){
-    const cwx=i*620+200, sx=((cwx-scroll*0.25)%(W+700)+(W+700))%(W+700)-200;
-    drawCloud(sx,H*0.16+i*34,26);
-  }
-  // hills
-  drawHills(scroll,0.4,theme.hillB,groundY+30,90);
-  drawHills(scroll,0.7,theme.hillF,groundY+50,60);
-  // ground
-  cx.fillStyle=theme.ground;cx.fillRect(0,groundY,W,H-groundY);
-  cx.fillStyle=theme.soil;cx.fillRect(0,groundY+18,W,H-groundY-18);
-  // ground stripes
-  cx.fillStyle='rgba(0,0,0,.08)';
-  for(let x=-(scroll%80);x<W;x+=80){cx.fillRect(x,groundY+18,40,H);}
-  // presents
-  cx.textAlign='center';cx.textBaseline='alphabetic';
-  presents.forEach(p=>{
-    if(p.collected)return;
-    const sx=p.worldX-scroll;
-    if(sx<-60||sx>W+60)return;
-    const fl=Math.sin(performance.now()/300+p.worldX)*4;
-    cx.font='46px serif';cx.fillText('🎁',sx,groundY-2+fl);
-  });
-  // goal flag
-  const gx=goalX-scroll;
-  if(gx>-60&&gx<W+60){cx.font='52px serif';cx.fillText('🚩',gx,groundY+2);}
-  // hero
-  drawHero(heroScreenX,legPhase,heroFacing);
-}
+// ════════════════ SAVE ════════════════
+const SAVE_KEY='a2_save_v1';
+function defSave(){return{schema:1,unlockedWorld:1,lifetimePower:0,
+  perWorld:{1:{bestPower:0,starsFound:[],completed:false}},settings:{muted:false}};}
+function loadSave(){try{const v=localStorage.getItem(SAVE_KEY);if(!v)return defSave();
+  const s=JSON.parse(v);return Object.assign(defSave(),s);}catch(e){return defSave();}}
+function writeSave(s){try{localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}}
+let save=loadSave();
+muted=!!(save.settings&&save.settings.muted);
 
-// ══════════════════════════════════════════════════
-//  GAME LOOP
-// ══════════════════════════════════════════════════
-let last=performance.now(), stepAcc=0;
-function loop(now){
-  const dt=Math.min(.05,(now-last)/1000);last=now;
-  if(state==='play')update(dt);
-  render();
-  requestAnimationFrame(loop);
+// ════════════════ INPUT ════════════════
+function bindHold(id,key){
+  const el=document.getElementById(id);
+  const on=e=>{e.preventDefault();keys[key]=true;unlockAudio();haptic(8);};
+  const off=e=>{if(e)e.preventDefault();keys[key]=false;};
+  el.addEventListener('pointerdown',on);
+  el.addEventListener('pointerup',off);
+  el.addEventListener('pointercancel',off);
+  el.addEventListener('pointerleave',off);
 }
-function update(dt){
-  let vx=0;
-  if(keys.right)vx+=SPEED;
-  if(keys.left)vx-=SPEED;
-  if(vx!==0){
-    heroX+=vx*dt;if(heroX<0)heroX=0;
-    heroFacing=vx>0?1:-1;
-    legPhase+=dt*14;
-    stepAcc+=Math.abs(vx*dt);
-    if(stepAcc>70){stepAcc=0;sndStep();}
-  }
-  // block at next uncollected present
-  const np=presents.find(p=>!p.collected);
-  if(np){
-    if(heroX>=np.worldX){heroX=np.worldX;openChallenge(np);}
-  }else if(heroX>=goalX){
-    heroX=goalX;levelComplete();
-  }
-  document.getElementById('hudDist').textContent=Math.floor(heroX/PXPERM).toLocaleString()+' מ׳';
-}
-
-// ══════════════════════════════════════════════════
-//  FLOW
-// ══════════════════════════════════════════════════
-function show(id){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('active'));
-  if(id)document.getElementById(id).classList.add('active');}
-function setHud(){
-  document.getElementById('hudLevel').textContent='שלב '+L.lv;
-  document.getElementById('hudPower').textContent='⚡ '+totalPower.toLocaleString();
-  const got=presents.filter(p=>p.collected).length;
-  document.getElementById('hudGifts').textContent=`🎁 ${got}/${L.presents}`;
-}
-function startLevel(idx){
-  levelIdx=idx;L=LEVELS[idx];theme=THEMES[idx];
-  heroX=0;heroFacing=1;legPhase=0;levelPower=0;
-  presents=[];
-  for(let i=0;i<L.presents;i++)presents.push({worldX:(FIRST_M+i*SPACING_M)*PXPERM,collected:false});
-  goalX=(FIRST_M+L.presents*SPACING_M)*PXPERM;
-  setHud();show(null);
-  document.getElementById('pad').style.display='flex';
-  const hk=document.getElementById('hintKey');hk.style.display='block';
-  setTimeout(()=>hk.style.display='none',3500);
-  state='play';
-}
-function levelComplete(){
-  state='level';
-  document.getElementById('pad').style.display='none';
-  document.getElementById('lvStats').innerHTML=
-    `אספת את כל המתנות! 🎁<br>צברת <strong>⚡ ${levelPower.toLocaleString()}</strong> כוח בשלב הזה<br>
-     סה״כ כוח: <strong>⚡ ${totalPower.toLocaleString()}</strong>`;
-  confetti();sndLevel();
-  document.getElementById('btnNext').textContent=
-    levelIdx+1<LEVELS.length?'לשלב הבא ▶':'סיים את ההרפתקה 👑';
-  show('ovLevel');
-}
-function nextLevel(){
-  if(levelIdx+1<LEVELS.length)startLevel(levelIdx+1);
-  else victory();
-}
-function victory(){
-  state='win';
-  document.getElementById('winStats').innerHTML=
-    `עברת את כל 5 השלבים!<br>כוח סופי: <strong>⚡ ${totalPower.toLocaleString()}</strong>`;
-  confetti();sndLevel();show('ovWin');
-}
-function disqualify(){
-  state='over';
-  document.getElementById('pad').style.display='none';
-  stopChTimer();
-  document.getElementById('overStats').innerHTML=
-    `נגמרו הניסיונות והמספר היה <strong>${chSecret.toLocaleString()}</strong>.<br>
-     צריך להתחיל את <strong>שלב ${L.lv}</strong> מההתחלה.`;
-  sndOver();haptic([200,100,200]);show('ovOver');
-}
-
-// ══════════════════════════════════════════════════
-//  CHALLENGE
-// ══════════════════════════════════════════════════
-function openChallenge(p){
-  state='challenge';curPresent=p;
-  chSecret=Math.floor(Math.random()*L.max)+1;
-  chLeft=L.attempts;chGuesses=[];chStart=performance.now();
-  document.getElementById('chMax').textContent=L.max.toLocaleString();
-  document.getElementById('chArrow').innerHTML=
-    '<div class="ch-htxt">הקלד ניחוש ולחץ נחש</div>';
-  document.getElementById('chHist').innerHTML='';
-  document.getElementById('chInput').value='';
-  renderHearts();
-  startChTimer();
-  show('ovChallenge');
-  setTimeout(()=>document.getElementById('chInput').focus(),50);
-}
-function renderHearts(){
-  let h='';for(let i=0;i<L.attempts;i++)h+=i<chLeft?'❤️':'🖤';
-  document.getElementById('chHearts').textContent=h;
-}
-function startChTimer(){
-  stopChTimer();
-  chTimerIv=setInterval(()=>{
-    const s=(performance.now()-chStart)/1000;
-    document.getElementById('chTimer').textContent='⏱ '+s.toFixed(1);
-  },100);
-}
-function stopChTimer(){if(chTimerIv){clearInterval(chTimerIv);chTimerIv=null;}}
-
-function submitGuess(){
-  if(state!=='challenge')return;
-  const inp=document.getElementById('chInput');
-  const val=parseInt(inp.value,10);
-  if(!val||val<1||val>L.max){
-    inp.style.borderColor='#ff5252';setTimeout(()=>inp.style.borderColor='',400);
-    haptic(60);return;
-  }
-  chLeft--;chGuesses.push(val);renderHearts();
-  const range=L.max-1, delta=chSecret-val, dist=Math.abs(delta);
-  const arrow=document.getElementById('chArrow'), hist=document.getElementById('chHist');
-  sndNear(dist,range);
-
-  if(delta===0){
-    stopChTimer();
-    const secs=(performance.now()-chStart)/1000;
-    const used=L.attempts-chLeft;
-    const timeF=Math.max(.25,1-secs/30);
-    const guessF=Math.max(.3,1-(used-1)/L.attempts);
-    const lvMult=1+(L.lv-1)*0.5;
-    const gain=Math.round(120*timeF*guessF*lvMult);
-    totalPower+=gain;levelPower+=gain;
-    curPresent.collected=true;
-    setHud();sndOpen();haptic([80,40,120]);confetti();
-    arrow.innerHTML=`<div class="ar">🎉</div>
-      <div class="ch-msg hot">פתחת את המתנה!</div>
-      <div class="pwgain">+${gain} ⚡ כוח &nbsp;(${secs.toFixed(1)} שנ׳)</div>`;
-    setTimeout(()=>{show(null);state='play';
-      document.getElementById('chInput').blur();},1100);
+bindHold('bLeft','left');bindHold('bRight','right');bindHold('bJump','jump');
+addEventListener('keydown',e=>{
+  unlockAudio();
+  if(state==='challenge'){
+    if(e.key==='Enter')submitGuess();
+    else if(e.key==='Backspace')padPress('del');
+    else if(/^[0-9]$/.test(e.key))padPress(e.key);
     return;
   }
-
-  // feedback
-  let cls,msg,htxt,chip;
-  if(dist<=Math.max(2,range*0.02)){cls='hot';msg=delta>0?'🔥 חם! עלה קצת ↑':'🔥 חם! רד קצת ↓';htxt='אתה ממש קרוב!';chip='hot';sndHot();}
-  else if(delta>0){cls='up';msg='גבוה יותר ↑';htxt=dist>range*0.4?'הרבה יותר גבוה':'קצת יותר גבוה';chip='up';}
-  else {cls='down';msg='נמוך יותר ↓';htxt=dist>range*0.4?'הרבה יותר נמוך':'קצת יותר נמוך';chip='down';}
-  arrow.innerHTML=`<div class="ar">${cls==='hot'?'🔥':delta>0?'⬆️':'⬇️'}</div>
-    <div class="ch-msg ${cls}">${msg}</div><div class="ch-htxt">${htxt}</div>`;
-  const c=document.createElement('span');c.className='ch-chip '+chip;
-  c.textContent=val.toLocaleString()+(chip==='up'?' ↑':chip==='down'?' ↓':' 🔥');
-  hist.prepend(c);
-
-  inp.value='';inp.focus();
-  if(chLeft<=0)disqualify();
-}
-
-// ══════════════════════════════════════════════════
-//  CONFETTI
-// ══════════════════════════════════════════════════
-function confetti(){
-  const cf=document.getElementById('confetti'),ctx=cf.getContext('2d');
-  cf.width=W;cf.height=H;
-  const COLS=['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#fb7185','#ffd54f'];
-  const ps=Array.from({length:150},()=>({x:Math.random()*W,y:-20,r:Math.random()*7+4,
-    dx:(Math.random()-.5)*4,dy:Math.random()*4+2.5,col:COLS[Math.floor(Math.random()*COLS.length)],
-    ang:Math.random()*360,spin:(Math.random()-.5)*6}));
-  let raf;
-  function draw(){
-    ctx.clearRect(0,0,W,H);let alive=false;
-    ps.forEach(p=>{if(p.y<H+20){alive=true;p.x+=p.dx;p.y+=p.dy;p.ang+=p.spin;
-      ctx.save();ctx.globalAlpha=Math.max(0,1-p.y/H);ctx.translate(p.x,p.y);
-      ctx.rotate(p.ang*Math.PI/180);ctx.fillStyle=p.col;
-      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);ctx.restore();}});
-    if(alive)raf=requestAnimationFrame(draw);else ctx.clearRect(0,0,W,H);
-  }
-  draw();setTimeout(()=>{cancelAnimationFrame(raf);ctx.clearRect(0,0,W,H)},4500);
-}
-
-// ══════════════════════════════════════════════════
-//  INPUT
-// ══════════════════════════════════════════════════
-addEventListener('keydown',e=>{
-  if(state==='challenge'){if(e.key==='Enter')submitGuess();return;}
-  if(state!=='play')return;
   if(e.key==='ArrowRight'||e.key==='d')keys.right=true;
   if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;
+  if(e.key===' '||e.key==='ArrowUp'||e.key==='w'){keys.jump=true;player.jumpBuf=0.13;}
 });
 addEventListener('keyup',e=>{
   if(e.key==='ArrowRight'||e.key==='d')keys.right=false;
   if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;
+  if(e.key===' '||e.key==='ArrowUp'||e.key==='w')keys.jump=false;
 });
-function bindHold(id,dir){
-  const el=document.getElementById(id);
-  const on=e=>{e.preventDefault();keys[dir]=true;AC();};
-  const off=e=>{e.preventDefault();keys[dir]=false;};
-  el.addEventListener('pointerdown',on);
-  el.addEventListener('pointerup',off);
-  el.addEventListener('pointerleave',off);
-  el.addEventListener('pointercancel',off);
+// jump buffer on touch press
+document.getElementById('bJump').addEventListener('pointerdown',()=>{player.jumpBuf=0.13;});
+
+document.getElementById('muteBtn').addEventListener('click',()=>{
+  muted=!muted;document.getElementById('muteBtn').textContent=muted?'🔇':'🔊';
+  save.settings.muted=muted;writeSave(save);
+});
+document.getElementById('muteBtn').textContent=muted?'🔇':'🔊';
+document.getElementById('spRefill').addEventListener('click',()=>{
+  if(runPower>=30){runPower-=30;momentum=100;sndStar();updateHUD();}
+});
+document.getElementById('bStart').addEventListener('click',startLevel);
+document.getElementById('bAgain').addEventListener('click',startLevel);
+
+// build number pad
+(function(){
+  const g=document.getElementById('padGrid');
+  ['1','2','3','4','5','6','7','8','9','del','0','ok'].forEach(k=>{
+    const b=document.createElement('button');
+    if(k==='ok'){b.className='ok';b.textContent='אישור';}
+    else if(k==='del'){b.className='del';b.textContent='⌫';}
+    else b.textContent=k;
+    b.addEventListener('click',()=>padPress(k));
+    g.appendChild(b);
+  });
+})();
+document.getElementById('chHintBtn').addEventListener('click',useHint);
+
+// ════════════════ FLOW ════════════════
+function show(id){document.querySelectorAll('.ov').forEach(o=>o.classList.remove('on'));
+  if(id)document.getElementById(id).classList.add('on');}
+
+function startLevel(){
+  unlockAudio();
+  level=LEVELS[levelIdx];
+  GROUND_Y=H-130;
+  // reset level mutable flags
+  level.presents.forEach(p=>p.opened=false);
+  level.stars.forEach(s=>s.got=false);
+  level.checkpoints.forEach(c=>c.done=false);
+  totalStars=level.stars.length;
+  momentum=40;runPower=0;openedCount=0;starsGot=0;lastCheckpointX=20;
+  particles=[];shakeMag=0;
+  Object.assign(player,{x:20,prevX:20,y:GROUND_Y,prevY:GROUND_Y,vx:0,vy:0,facing:1,
+    grounded:true,onPlat:false,curPlat:null,coyote:0,jumpBuf:0,stagger:0,invuln:0,sx:1,sy:1,walkT:0});
+  document.getElementById('hStars').textContent=`⭐ 0/${totalStars}`;
+  show(null);state='play';updateHUD();
 }
-bindHold('btnLeft','left');bindHold('btnRight','right');
 
-document.getElementById('btnGuess').addEventListener('click',submitGuess);
-document.getElementById('btnStart').addEventListener('click',()=>{AC();totalPower=0;startLevel(0);});
-document.getElementById('btnNext').addEventListener('click',nextLevel);
-document.getElementById('btnRetry').addEventListener('click',()=>startLevel(levelIdx));
-document.getElementById('btnRestart').addEventListener('click',()=>{totalPower=0;startLevel(0);});
+function levelComplete(){
+  state='win';
+  const pw=save.perWorld[1];
+  if(runPower>pw.bestPower)pw.bestPower=runPower;
+  level.stars.forEach((s,i)=>{if(s.got&&!pw.starsFound.includes(i))pw.starsFound.push(i);});
+  pw.completed=true;save.lifetimePower=(save.lifetimePower||0)+runPower;writeSave(save);
+  document.getElementById('winStats').innerHTML=
+    `צברת <b>⚡ ${runPower}</b> כוח<br>כוכבים: <b>⭐ ${starsGot}/${totalStars}</b><br>
+     <span style="color:#ffd447">שיא: ⚡ ${pw.bestPower}</span>`;
+  burstAt(player.x,player.y-40,'#ffd447');sndWin();haptic([60,40,120]);
+  show('ovWin');
+}
 
-requestAnimationFrame(loop);
+function failSegment(){
+  player.x=lastCheckpointX;player.y=GROUND_Y;player.vx=0;player.vy=0;
+  player.grounded=true;player.onPlat=false;player.curPlat=null;
+  momentum=35;player.invuln=1.0;shakeMag=10;camX=Math.max(0,player.x-W*0.30);
+}
+
+function hitHazard(){
+  if(player.invuln>0)return;
+  const nm=momentum-34;
+  shakeMag=12;sndOof();haptic(30);
+  if(nm<=0){momentum=0;failSegment();return;}
+  momentum=nm;player.stagger=0.45;player.invuln=0.75;player.vx=-150*player.facing;
+}
+
+// ════════════════ CHALLENGE ════════════════
+function attemptsFor(range){
+  const base=Math.ceil(Math.log2(range));
+  const buf=range<=100?-2:range<=1000?-2:range<=10000?-2:range<=50000?1:3;
+  return Math.max(3,base+buf);
+}
+function openChallenge(i){
+  state='challenge';chIdx=i;
+  const pr=level.presents[i];
+  chRange=pr.range||level.range;chMax=attemptsFor(chRange);chLeft=chMax;
+  chSecret=Math.floor(Math.random()*chRange)+1;chStart=performance.now();padVal='';chHintUsed=false;
+  document.getElementById('chMax').textContent=chRange;
+  document.getElementById('chDisp').textContent='';
+  document.getElementById('chFb').innerHTML='<div class="t" style="color:#9aa">הקלידו ניחוש</div>';
+  document.getElementById('chHint').textContent='';
+  document.getElementById('chHintBtn').disabled=runPower<25;
+  renderHearts();
+  if(chTimerIv)clearInterval(chTimerIv);
+  chTimerIv=setInterval(()=>{const s=(performance.now()-chStart)/1000;
+    document.getElementById('chTimer').textContent='⏱ '+s.toFixed(1);},100);
+  show('ovCh');
+}
+function renderHearts(){let h='';for(let i=0;i<chMax;i++)h+=i<chLeft?'❤️':'🖤';
+  document.getElementById('chHearts').textContent=h;}
+function padPress(k){
+  if(state!=='challenge')return;
+  if(k==='ok'){submitGuess();return;}
+  if(k==='del'){padVal=padVal.slice(0,-1);}
+  else{if(padVal.length<String(chRange).length)padVal+=k;}
+  document.getElementById('chDisp').textContent=padVal;
+}
+function useHint(){
+  if(chHintUsed||runPower<25)return;
+  chHintUsed=true;runPower-=25;updateHUD();
+  document.getElementById('chHintBtn').disabled=true;
+  const mid=Math.ceil(chRange/2);
+  document.getElementById('chHint').textContent=
+    chSecret<=mid?`💡 המספר בין 1 ל-${mid}`:`💡 המספר בין ${mid+1} ל-${chRange}`;
+}
+function submitGuess(){
+  if(state!=='challenge')return;
+  const val=parseInt(padVal,10);
+  const disp=document.getElementById('chDisp');
+  if(!val||val<1||val>chRange){disp.classList.add('bad');setTimeout(()=>disp.classList.remove('bad'),350);haptic(50);return;}
+  chLeft--;renderHearts();
+  const delta=chSecret-val, dist=Math.abs(delta), prox=1-dist/chRange;
+  sndPing(prox);
+  const fb=document.getElementById('chFb');
+  if(delta===0){
+    if(chTimerIv)clearInterval(chTimerIv);
+    const elapsed=(performance.now()-chStart)/1000;
+    const speedF=Math.max(.5,Math.min(2,2-elapsed/10));
+    const eff=1+chLeft/chMax;
+    const gain=Math.round(10*speedF*eff);
+    runPower+=gain;lifetime+=gain;
+    level.presents[chIdx].opened=true;openedCount++;
+    save.lifetimePower=(save.lifetimePower||0)+gain;writeSave(save);
+    fb.innerHTML=`<div class="ar">🎉</div><div class="t" style="color:#69f0ae">+${gain} ⚡!</div>`;
+    sndOpen();haptic([60,40]);
+    burstAt(player.x,player.y-40,level.accent);
+    setTimeout(()=>{show(null);state='play';updateHUD();},900);
+    return;
+  }
+  let col,word;
+  if(prox>=0.98){col='#fff';word='🔥 רותח!';}
+  else if(prox>=0.94){col='#ff5252';word='חם!';}
+  else if(prox>=0.85){col='#ff9800';word='פושר';}
+  else if(prox>=0.6){col='#2ec4b6';word='קריר';}
+  else{col='#60a5fa';word='קר';}
+  fb.innerHTML=`<div class="ar">${delta>0?'⬆️':'⬇️'}</div>
+    <div class="t" style="color:${col}">${delta>0?'גבוה יותר':'נמוך יותר'} · ${word}</div>`;
+  padVal='';document.getElementById('chDisp').textContent='';
+  if(chLeft<=0){
+    if(chTimerIv)clearInterval(chTimerIv);
+    fb.innerHTML=`<div class="t" style="color:#ff8a80">המספר היה ${chSecret} — נסו שוב!</div>`;
+    sndOof();haptic([120,60,120]);
+    setTimeout(()=>{show(null);state='play';failSegment();updateHUD();},1300);
+  }
+}
+
+// ════════════════ UPDATE ════════════════
+function update(dt){
+  const p=player;
+  if(p.coyote>0)p.coyote-=dt;
+  if(p.jumpBuf>0)p.jumpBuf-=dt;
+  if(p.stagger>0)p.stagger-=dt;
+  if(p.invuln>0)p.invuln-=dt;
+  p.jumpHeld=keys.jump;
+  const staggered=p.stagger>0;
+
+  let dir=0;
+  if(!staggered){if(keys.right)dir+=1;if(keys.left)dir-=1;}
+  const baseMax=320, maxV=baseMax*(1+0.45*(momentum/100));
+  if(dir!==0){
+    const accel=(p.vx!==0&&Math.sign(dir)!==Math.sign(p.vx))?2880:1800;
+    p.vx+=dir*accel*dt;p.facing=dir>0?1:-1;
+  }else{
+    const fr=p.grounded?2400:700;
+    if(p.vx>0)p.vx=Math.max(0,p.vx-fr*dt);
+    else if(p.vx<0)p.vx=Math.min(0,p.vx+fr*dt);
+  }
+  p.vx=Math.max(-maxV,Math.min(maxV,p.vx));
+
+  const canJump=p.grounded||p.coyote>0;
+  if(p.jumpBuf>0&&canJump&&!staggered){
+    p.vy=-680*(1+0.30*(momentum/100));
+    p.grounded=false;p.onPlat=false;p.curPlat=null;p.coyote=0;p.jumpBuf=0;
+    p.sx=0.8;p.sy=1.2;sndJump();
+  }
+  if(p.vy<0&&!p.jumpHeld&&p.vy<-260)p.vy=-260;
+  let g=(p.vy<0&&p.jumpHeld)?1900:2600;
+  if(Math.abs(p.vy)<120)g*=0.55;
+  p.vy+=g*dt;
+
+  p.prevX=p.x;p.prevY=p.y;
+  p.x+=p.vx*dt;p.y+=p.vy*dt;
+  if(p.x<20){p.x=20;if(p.vx<0)p.vx=0;}
+
+  if(p.grounded&&Math.abs(p.vx)>20)p.walkT+=dt*(8+Math.abs(p.vx)/26),sndStep();
+
+  const was=p.grounded;p.grounded=false;
+  if(p.vy>=0){
+    for(const pl of level.platforms){
+      const top=GROUND_Y-pl.h;
+      if(p.x>pl.x-18&&p.x<pl.x+pl.w+18&&p.prevY<=top+4&&p.y>=top){
+        p.y=top;p.vy=0;p.grounded=true;p.onPlat=true;p.curPlat=pl;break;
+      }
+    }
+  }
+  if(!p.grounded&&p.y>=GROUND_Y){p.y=GROUND_Y;p.vy=0;p.grounded=true;p.onPlat=false;p.curPlat=null;}
+  if(p.grounded&&p.onPlat&&p.curPlat){
+    const pl=p.curPlat;
+    if(p.x<pl.x-18||p.x>pl.x+pl.w+18){p.grounded=false;p.onPlat=false;p.curPlat=null;}
+  }
+  if(p.grounded&&!was){p.sx=1.25;p.sy=0.75;sndLand();}
+  if(!p.grounded&&was)p.coyote=0.1;
+  p.sx+=(1-p.sx)*Math.min(1,dt*8);
+  p.sy+=(1-p.sy)*Math.min(1,dt*8);
+
+  if(p.grounded&&Math.abs(p.vx)>0.6*baseMax)momentum=Math.min(100,momentum+22*dt);
+  else momentum=Math.max(0,momentum-8*dt);
+
+  if(p.invuln<=0&&p.grounded&&!p.onPlat){
+    for(const h of level.hazards){if(p.x>h.x-18&&p.x<h.x+h.w+18){hitHazard();break;}}
+  }
+
+  for(const c of level.checkpoints){
+    if(!c.done&&p.x>=c.x){c.done=true;lastCheckpointX=c.x;sndCheck();}
+  }
+  level.stars.forEach((s)=>{
+    if(s.got)return;const sy=GROUND_Y-s.h;
+    if(Math.abs(p.x-s.x)<52&&Math.abs(p.y-sy)<60){s.got=true;starsGot++;sndStar();
+      burstAt(s.x,sy,'#ffd447');document.getElementById('hStars').textContent=`⭐ ${starsGot}/${totalStars}`;}
+  });
+  checkPresents();
+  if(p.x>=level.goal.x)levelComplete();
+
+  camX=Math.max(0,p.x-W*0.30);
+  if(shakeMag>0.3)shakeMag*=0.9;else shakeMag=0;
+  for(let i=particles.length-1;i>=0;i--){
+    const pt=particles[i];pt.x+=pt.vx;pt.y+=pt.vy;pt.vy+=0.3;pt.life-=dt*60;
+    if(pt.life<=0)particles.splice(i,1);
+  }
+}
+function checkPresents(){
+  const p=player;
+  for(let i=0;i<level.presents.length;i++){
+    const pr=level.presents[i];if(pr.opened)continue;
+    const py=GROUND_Y-(pr.h||0);
+    if(pr.bonus){
+      if(p.grounded&&Math.abs(p.x-pr.x)<40&&Math.abs(p.y-py)<60){openChallenge(i);return;}
+    }else{
+      if(Math.abs(p.x-pr.x)<42&&Math.abs(p.y-py)<72){
+        if(p.x>pr.x-22)p.x=pr.x-22;
+        openChallenge(i);return;
+      }
+    }
+  }
+}
+function burstAt(wx,wy,col){
+  for(let i=0;i<16;i++){const a=Math.random()*Math.PI*2,sp=Math.random()*5+2;
+    particles.push({x:wx,y:wy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,
+      r:Math.random()*3+2,col:Math.random()<.5?col:'#fff',life:42});}
+}
+
+// ════════════════ RENDER ════════════════
+function drawHills(color,factor,baseOff,amp){
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,H);
+  const sc=camX*factor;
+  for(let x=0;x<=W;x+=16){
+    const wx=x+sc;
+    const y=GROUND_Y+baseOff-Math.sin(wx*0.004)*amp-Math.cos(wx*0.011)*amp*0.4;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+}
+function drawZuzu(){
+  const p=player;const sx=p.x-camX;const fy=p.y;
+  ctx.save();ctx.translate(sx,fy);
+  if(momentum>70){ctx.shadowBlur=20;ctx.shadowColor='#ffd447';}
+  ctx.scale(p.facing,1);
+  const bob=p.grounded?-Math.abs(Math.sin(p.walkT*2))*4:0;
+  ctx.translate(0,bob);
+  ctx.scale(p.sx,p.sy);
+  // legs
+  const sw=Math.sin(p.walkT)*7;
+  ctx.strokeStyle='#E8533A';ctx.lineWidth=6;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-8,-10);ctx.lineTo(-8+sw,2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(8,-10);ctx.lineTo(8-sw,2);ctx.stroke();
+  // arms
+  const asw=Math.sin(p.walkT+Math.PI)*6;
+  ctx.beginPath();ctx.moveTo(-20,-44);ctx.lineTo(-24,-30+asw);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(20,-44);ctx.lineTo(24,-30-asw);ctx.stroke();
+  // body
+  ctx.fillStyle='#FF6B4A';ctx.beginPath();ctx.ellipse(0,-40,24,30,0,0,7);ctx.fill();
+  ctx.fillStyle='#FF4521';ctx.beginPath();ctx.ellipse(0,-30,14,16,0,0,Math.PI);ctx.fill();
+  // scarf
+  ctx.fillStyle='#2EC4B6';
+  const sf=Math.sin(performance.now()/120)*4;
+  ctx.beginPath();ctx.moveTo(-14,-20);ctx.quadraticCurveTo(-26,-14+sf,-30,-2+sf);
+  ctx.lineTo(-20,-6);ctx.quadraticCurveTo(-16,-14,-10,-18);ctx.closePath();ctx.fill();
+  // eyes
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-8,-46,7,0,7);ctx.arc(9,-46,7,0,7);ctx.fill();
+  ctx.fillStyle='#1A1A2E';const lx=p.vx>30?2:p.vx<-30?-2:1;
+  ctx.beginPath();ctx.arc(-8+lx,-45,3.2,0,7);ctx.arc(9+lx,-45,3.2,0,7);ctx.fill();
+  ctx.restore();
+}
+function emoji(ch,wx,wy,size){
+  ctx.font=(size||32)+'px serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  ctx.fillText(ch,wx-camX,wy);
+}
+function render(){
+  ctx.save();
+  if(shakeMag>0)ctx.translate((Math.random()-.5)*shakeMag,(Math.random()-.5)*shakeMag);
+  // sky
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,level.sky[0]);sky.addColorStop(1,level.sky[1]);
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  // sun
+  ctx.fillStyle='rgba(255,245,200,.9)';ctx.beginPath();ctx.arc(W*0.8,H*0.18,40,0,7);ctx.fill();
+  // hills
+  drawHills(level.far,0.25,40,80);
+  drawHills(level.near,0.55,70,55);
+  // decor
+  for(let i=0;i<5;i++){const wx=i*900+300;emoji(i%2?'🌳':'☁️',wx,GROUND_Y-(i%2?2:200),i%2?42:36);}
+  // ground
+  ctx.fillStyle=level.ground;ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
+  ctx.fillStyle=level.grass;ctx.fillRect(0,GROUND_Y-4,W,8);
+  ctx.fillStyle='rgba(0,0,0,.10)';
+  for(let x=-(camX%48);x<W;x+=48)ctx.fillRect(x,GROUND_Y+10,24,H);
+  // platforms
+  level.platforms.forEach(pl=>{
+    const sxp=pl.x-camX,top=GROUND_Y-pl.h;
+    if(sxp>W+40||sxp+pl.w<-40)return;
+    ctx.fillStyle=level.ground;ctx.beginPath();ctx.roundRect(sxp,top,pl.w,22,8);ctx.fill();
+    ctx.fillStyle=level.grass;ctx.beginPath();ctx.roundRect(sxp,top,pl.w,6,4);ctx.fill();
+  });
+  // hazards
+  level.hazards.forEach(h=>emoji('🔥',h.x+h.w/2,GROUND_Y-2,34));
+  // checkpoints
+  level.checkpoints.forEach(c=>emoji(c.done?'🚩':'🏳️',c.x,GROUND_Y-2,34));
+  // stars
+  level.stars.forEach(s=>{if(s.got)return;const bobf=Math.sin(performance.now()/300+s.x)*5;
+    emoji('⭐',s.x,GROUND_Y-s.h+bobf,30);});
+  // presents
+  level.presents.forEach(pr=>{if(pr.opened)return;const py=GROUND_Y-(pr.h||0);
+    const bobf=Math.sin(performance.now()/280+pr.x)*4;emoji(pr.bonus?'🎀':'🎁',pr.x,py+bobf,40);});
+  // goal
+  emoji('🏁',level.goal.x,GROUND_Y-2,46);
+  // particles
+  particles.forEach(pt=>{ctx.globalAlpha=Math.max(0,pt.life/42);ctx.fillStyle=pt.col;
+    ctx.beginPath();ctx.arc(pt.x-camX,pt.y,pt.r,0,7);ctx.fill();});
+  ctx.globalAlpha=1;
+  // hero
+  drawZuzu();
+  ctx.restore();
+}
+
+// ════════════════ HUD ════════════════
+function updateHUD(){
+  document.getElementById('hPow').textContent='⚡ '+runPower;
+  document.getElementById('hDist').textContent=Math.floor(player.x/8)+' מ׳';
+  document.getElementById('mFill').style.width=momentum+'%';
+  document.getElementById('spRefill').disabled=runPower<30;
+}
+
+// ════════════════ LOOP ════════════════
+let last=performance.now(),acc=0;const STEP=1000/60;
+function frame(now){
+  acc+=Math.min(now-last,250);last=now;
+  if(state==='play'){while(acc>=STEP){update(STEP/1000);acc-=STEP;}}
+  else acc=0;
+  if(level)render();
+  requestAnimationFrame(frame);
+}
+
+// ════════════════ INIT ════════════════
+resize();
+level=LEVELS[0];GROUND_Y=H-130;player.y=GROUND_Y;
+const pw=save.perWorld[1];
+if(pw&&pw.bestPower>0)document.getElementById('bestLine').textContent=`שיא קודם: ⚡ ${pw.bestPower}`;
+requestAnimationFrame(frame);
 </script>
 </body>
 </html>
