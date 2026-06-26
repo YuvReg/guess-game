@@ -436,7 +436,8 @@ function failSegment(){
   momentum=35;player.invuln=1.0;shakeMag=10;camX=Math.max(0,player.x-W*0.30);
   level.enemies.forEach(e=>{if(e.x0>lastCheckpointX){e.alive=true;e.squashT=0;e.x=e.x0;e.dir=1;e.hopY=0;e.onGround=true;}});
   pBullets=[];bBullets=[];
-  if(level.boss&&level.boss.active&&!level.boss.dead){level.boss.hp=level.boss.maxHp;level.boss.fireTimer=1.8;level.boss.bob=0;level.boss.fy=GROUND_Y-140;level.boss.x=level.boss.homeX;level.boss.burstLeft=0;}
+  // keep the boss's chipped-down HP across deaths (don't reset to full) so the fight stays beatable
+  if(level.boss&&level.boss.active&&!level.boss.dead){level.boss.fireTimer=1.8;level.boss.bob=0;level.boss.fy=GROUND_Y-140;level.boss.x=level.boss.homeX;level.boss.burstLeft=0;}
 }
 function hitHazard(){
   if(player.invuln>0)return;player.jumpBuf=0;
@@ -697,11 +698,13 @@ function updateBoss(dt){
 }
 function updateBullets(dt){
   const bo=level.boss;
-  for(let i=pBullets.length-1;i>=0;i--){const b=pBullets[i];b.x+=b.vx*dt;b.life-=dt;
+  for(let i=pBullets.length-1;i>=0;i--){const b=pBullets[i];if(!b)continue;b.x+=b.vx*dt;b.life-=dt;
     let rm=b.life<=0||b.x<camX-60||b.x>camX+W+60;
     if(!rm&&bo&&bo.active&&!bo.dead){const bx=bo.x,by=bo.fy;if(Math.abs(b.x-bx)<58&&Math.abs(b.y-by)<58){bossHit();rm=true;}}
     if(rm)pBullets.splice(i,1);}
   for(let i=bBullets.length-1;i>=0;i--){const b=bBullets[i];
+    // a player hit can call failSegment() which empties bBullets mid-loop — guard against that
+    if(!b)continue;
     // shots are aimed at you on launch; 'wave' shots also weave up/down so they're harder to read.
     // no homing — a well-timed jump (pass under) or duck (pass over) still dodges every shot.
     if(b.kind==='wave'){b.phase+=dt*8;b.y+=Math.sin(b.phase)*95*dt;}
